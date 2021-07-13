@@ -30,6 +30,7 @@ bool MainWindow::writeData(QByteArray data)
     //state() 소켓의 상태 리턴, 연결이 되어있으면 데이터를 씀
     if(client_socket->state() == QAbstractSocket::ConnectedState)
     {
+
         client_socket->write(data);
 
     }
