@@ -1,9 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
 #include <QMainWindow>
 #include <QtNetwork>
 #include <QTcpServer>
+#include "myserver.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -17,9 +17,9 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    void startServer();
 
 signals:
+    void broadcast_data(QByteArray bdata);
 
 public slots:
 
@@ -38,15 +38,28 @@ public slots:
     //실패시
     void showWriteFail(qintptr socketDescriptor);
 
+    //소켓에러
+    void showSocketError(QTcpSocket::SocketError socketerror);
 
-protected:
-    void incomingConnection(qintptr socketDescriptor);
+    //listen성공
+    void showListenSuccess(QString slog,QHostAddress server_address,quint16 listen_port);
 
+    //listen 실패
+    void showListenFail(QString flog);
+
+
+
+private slots:
+    void on_pushButton_start_clicked();
+
+    void on_pushButton_clicked();
 
 private:
     Ui::MainWindow *ui;
-    QTcpServer *server_socket;
     bool send_flag;
+
+    qint32 port;
+
 
 };
 #endif // MAINWINDOW_H

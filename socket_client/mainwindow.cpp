@@ -6,19 +6,27 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    this->setWindowTitle("client");
+
+    //소켓 생성
+    client_socket = new QTcpSocket(this);
+
+    //서버로부터 리턴되는 데이터를 읽음
+    connect(client_socket,SIGNAL(readyRead()),SLOT(readData()));
+
 
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+
 }
 
 //연결확인을 위한 함수, 인자로 연결할 서버의 ip를 받음
-bool MainWindow::connectCheck(QString server_ip)
+bool MainWindow::connectCheck(QString server_ip, qint32 server_port)
 {
     //서버와 연결을 위한 ip와 포트번호넣어주기
-    client_socket->connectToHost(server_ip,9999);
+    client_socket->connectToHost(server_ip,server_port);
 
     //연결 여부를 알려줌(bool 타입)
     return client_socket->waitForConnected();
@@ -50,47 +58,20 @@ void MainWindow::on_pushButton_clicked()
 
     //ui->textEdit_2->setText(QString("client_message %1").arg(temp));
     
-    //소켓 생성
-    client_socket = new QTcpSocket(this);
-    
-    //연결 시도 및 연결확인
 
-    connect_flag = connectCheck("127.0.0.1"); 
+    //연결이 되었으면
     if(connect_flag)
     {
-        ui->textBrowser->insertPlainText(QString("Connected Server!!\n"));
+
         //QString.toStdString().c_str => char* 형태로 만듦
         send_flag = writeData(client_message.toStdString().c_str());
 
-        //디버깅용
-        temp=ui->textEdit->toPlainText();
-        qDebug()<< temp;
 
         //데이터가 제대로 안보내지면
         if(!send_flag)
         {
-            ui->textEdit->setText("send fail");
+            ui->textBrowser->setText("send fail");
         }
-
-        //잘 보내졌으면 서버로부터 리턴 받은 데이터 출력
-        else
-        {
-            connect(client_socket,SIGNAL(readyRead()),SLOT(readData()));
-            //서버로부터 리턴되는 데이터를 읽음
-
-            if(client_socket->bytesAvailable()>=0)
-            {
-
-                QByteArray tempData = client_socket->readAll();
-                qDebug() << QString(tempData);
-
-                //printf("check return data %s",tempData.data());
-                //ui->textEdit_2->setText("asdfasdfasfdas");
-            }
-
-
-        }
-        //client_socket->close();
 
     }
 
@@ -98,28 +79,84 @@ void MainWindow::on_pushButton_clicked()
     else
     {
 
-        ui->textBrowser->insertPlainText("connect fail!\n");
+        ui->textBrowser->insertPlainText("connect fail! - please connect server\n");
     }
 }
 
+//보낸 데이터에 대해서 리턴
 void MainWindow::readData()
 {
-    if(client_socket->bytesAvailable()>=0)
+    if(client_socket->bytesAvailable()>0)
     {
         qDebug()<<client_socket->bytesAvailable();
 
         //서버로부터 받은 데이터
         QByteArray tempData = client_socket->readAll();
         qDebug() << QString(tempData);
-        if(tempData=="" && client_socket->bytesAvailable()<=0)
-        {
-            ui->textBrowser->insertPlainText("nullpointException\n");
-        }
-        else
-        {
-            ui->textBrowser->insertPlainText(QString("Server to Client : %1\n").arg(QString(tempData)));
-        }
+
+        ui->textBrowser->insertPlainText(QString("Server Send Data  : %1\n").arg(QString(tempData)));
+
     }
 
+}
+
+//ip,port입력후 서버와 연결시도
+void MainWindow::on_pushButton_2_clicked()
+{
+
+    //디폴트 ip,port
+    QString ip_num = "127.0.0.1";
+    qint32 port_num = 9999;
+
+    //입력받은 ip와 포트 추출
+    ip_num = ui->lineEdit_ip->text();
+    port_num = (ui->lineEdit_port->text()).QString::toUInt();
+
+    //아무것도 입력안하면 디폴트값 대입
+    if(ip_num=="")
+    {
+        ip_num = "127.0.0.1";
+    }
+    if(port_num == 0)
+    {
+        port_num = 9999;
+    }
+
+    qDebug() << "ip : "<< ip_num << "port" << port_num;
+
+
+    //연결 시도 및 연결확인
+    connect_flag = connectCheck(ip_num,port_num);
+    //연결되어있으면 Connected success 메시지 출력
+    if(connect_flag)
+    {
+        ui->textBrowser_socket_state->setText(QString("Connected success!!\n"));
+    }
+    //연결 안되어있으면 Connected fail 출력
+    else
+    {
+        ui->textBrowser_socket_state->setText(QString("Connected fail;;;\n"));
+    }
+}
+
+//연결해제 버튼
+void MainWindow::on_pushButton_3_clicked()
+{
+    //연결이 되어있으면 해제하고 상태창에 disconnect success!
+    if(client_socket->state() == QAbstractSocket::ConnectedState)
+    {
+        client_socket->disconnectFromHost();
+        ui->textBrowser_socket_state->setText("disconnect success!");
+    }
+    //연결이 안되어있으면 상태창에 disconnected 출력
+    else if(client_socket->state() == QAbstractSocket::UnconnectedState)
+    {
+        ui->textBrowser_socket_state->setText("disconnected");
+    }
+    //나머지 상태에 대하여
+    else
+    {
+        ui->textBrowser_socket_state->setText("unknown");
+    }
 }
 

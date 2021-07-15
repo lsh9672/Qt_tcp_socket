@@ -6,18 +6,16 @@ MyThread::MyThread(qintptr ID, QObject *parent):
     QThread(parent)
 {
     this->socketDescriptor = ID;
+    //this->main_w = ui;
 }
 
 //스레드의 start()함수를 사용했을때 실행하는 부분
 void MyThread::run()
 {
-
     //thread로 실행하는 구문
     qDebug() << "T Start!!";
 
     qDebug() << "Thread ID" << QThread::currentThreadId();
-
-
 
     //클라이언트의 요청 처리를 위해 소켓 생성
     client_socket = new QTcpSocket();
@@ -33,6 +31,9 @@ void MyThread::run()
 
     //connect를 이용하여 처리할 시그널과 소켓을 연결
     connect(client_socket,SIGNAL(readyRead()),this,SLOT(readData()));
+
+    //connect(main_w,SIGNAL(broadcast_data(QByteArray)),this,SLOT(broadcast_data_send(QByteArray)));
+
     connect(client_socket,SIGNAL(disconnected()),this,SLOT(disconnected()));
 
     qDebug() << client_socket->socketDescriptor() <<  "Client connected";
@@ -48,12 +49,15 @@ void MyThread::disconnected()
    //client_socket->close();
    //ui->textBrowser->insertPlainText("disconnected client\n");
    //deleteLater() => 이벤트 루프가 실행되고 있을때 끊기더라도 이 함수에 의해서 이벤트 루프 실행후 객체가 삭제됨(중간에 블락될 걱정을 안해도 된다.)
-   client_socket->deleteLater();
+    emit sigDisconnected(client_socket->socketDescriptor());
+    this->wait(300);
+    client_socket->deleteLater();
 
    qDebug() << "disconnected client";
 
    //연결이 끊어졌음을 gui에 표시하기 위한 시그널 발생.
-   emit showDisconnected(client_socket->socketDescriptor());
+
+
    exit(0);
 }
 
@@ -68,13 +72,15 @@ void MyThread::readData()
     //소켓으로 부터 읽을수 있는 바이트가 1개 이상이면 실행한다.
     if(client_socket->bytesAvailable()>0)
     {
+
         //소켓으로 부터 모든 데이터를 읽어서 저장한다.
         data2 = client_socket->readAll();
         //ui->textBrowser->insertPlainText(QString("Client to Server : %1\n").arg(QString(data2)));
         qDebug() << "client to server : " << QString(data2);
-
         //gui 출력을 위해 받은 데이터를 전부 읽으면 시그널을 발생시킨다.
-        emit showReadData(client_socket->socketDescriptor(),QString(data2));
+        emit sigReadData(client_socket->socketDescriptor(),QString(data2));
+        //발생된 시그널을 처리할수 있도록 잠시 스레드를 멈춤
+        this->wait(300);
     }
 
     //writeData함수의 결과가 true 이면 데이터를 전부 write하는데 성공 , false이면 데이터를 write하는데 실패함(또는 아직 전부다 write 못함)
@@ -86,20 +92,22 @@ void MyThread::readData()
         //ui->textBrowser->insertPlainText("Data Return Success!\n");
         qDebug() << "Data Return Success!";
         //write 성공여부를 위한 Signal
-        emit showWriteSuccess(client_socket->socketDescriptor());
+        emit sigWriteSuccess(client_socket->socketDescriptor());
+        this->wait(300);
     }
     else
     {
         //ui->textBrowser->insertPlainText("Data Return Fail\n");
         qDebug() << "Data Return Fail";
-        emit showWriteFail(client_socket->socketDescriptor());
+        emit sigWriteFail(client_socket->socketDescriptor());
+        this->wait(300);
     }
     client_socket->flush();
 }
 bool MyThread::writeData(QByteArray mydata)
 {
     //QTcpSocket *client = (QTcpSocket*)sender();
-    QString returnData = "server_send=>";
+    QString returnData = QString("[%1 socket] return data => ").arg(client_socket->socketDescriptor());
     returnData.append(QString(mydata));
     qDebug()<< "server to client : " << returnData;
     client_socket->write(returnData.toStdString().c_str());
@@ -111,3 +119,20 @@ bool MyThread::writeData(QByteArray mydata)
     */
     return client_socket->waitForBytesWritten();
 }
+
+
+//gui로 부터 broadcast버튼이 눌렸을때.
+void MyThread::broadcast_data_send(QByteArray bdata)
+{
+    client_socket->write(bdata);
+    if(!client_socket->waitForBytesWritten())
+    {
+        this->wait();
+    }
+    else
+    {
+        qDebug() << "data success";
+    }
+
+}
+

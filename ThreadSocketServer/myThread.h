@@ -1,5 +1,7 @@
 #ifndef MYTHREAD_H
 #define MYTHREAD_H
+#pragma once
+#include "mainwindow.h"
 
 #include <QThread>
 #include <QDebug>
@@ -21,17 +23,16 @@ signals:
     void error(QTcpSocket::SocketError socketerror);
 
     //연결이 끊어졌을때 ui에 알리기 위한 시그널 - 인자: 소켓 설명자를 받아서 어떤 소켓이 연결을 끊었는지 표시
-    void showDisconnected(qintptr socketDescriptor);
+    void sigDisconnected(qintptr socketDescriptor);
 
     //client로 부터 데이터를 읽었을 때 gui화면 출력을 위해 데이터와 socketDescriptor를 넘겨줌
-    void showReadData(qintptr socketDescriptor,QString rData);
+    void sigReadData(qintptr socketDescriptor,QString rData);
 
     //다시 client 쪽으로 write 성공했을때
-    void showWriteSuccess(qintptr socketDescriptor);
-
+    void sigWriteSuccess(qintptr socketDescriptor);
 
     //write실패시
-    void showWriteFail(qintptr socketDescriptor);
+    void sigWriteFail(qintptr socketDescriptor);
 
 public slots:
     //readyRead 시그널 발생시 처리
@@ -39,14 +40,18 @@ public slots:
     //disconnected 시그널 발생시 처리
     void disconnected();
 
+    //모든 클라이언트로 메시지 보냄
+    void broadcast_data_send(QByteArray bdata);
+
 
 private:
     //서버로 연결요청이 들어오면 처리하기 위한 소켓
      QTcpSocket *client_socket;
-
+     //MainWindow *main_w;
      //소켓 설명자(포인터 타입- 소켓 객체의 주소), 소켓을 나타낸다 생각.
      qintptr socketDescriptor;
      bool send_flag;
+
 
 };
 

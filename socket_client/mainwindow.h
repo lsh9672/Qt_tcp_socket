@@ -20,15 +20,22 @@ public:
 
 public slots:
     //연결체크용 함수, 인자로 연결할 서버의 ip주소를 받음
-    bool connectCheck(QString host);
+    bool connectCheck(QString server_ip,qint32 server_port);
 
     //데이터 전달 확인용 함수
     bool writeData(QByteArray data);
 
 private slots:
+    //send 버튼
     void on_pushButton_clicked();
     //데이터 수신
     void readData();
+
+    //connect 버튼
+    void on_pushButton_2_clicked();
+
+
+    void on_pushButton_3_clicked();
 
 private:
     Ui::MainWindow *ui;
