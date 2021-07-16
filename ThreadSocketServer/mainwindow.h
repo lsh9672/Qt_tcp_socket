@@ -18,13 +18,16 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+
+
 signals:
     void broadcast_data(QByteArray bdata);
+
 
 public slots:
 
     //클라이언트 연결시 ui표시
-    void showConnect(qintptr socketDescriptor);
+    void showConnect(qintptr socketDescriptor, time_t timer);
 
     //소켓 연결해제시에 UI 표시를 위한 slot
     void showDisconnected(qintptr socketDescriptor);
@@ -42,10 +45,12 @@ public slots:
     void showSocketError(QTcpSocket::SocketError socketerror);
 
     //listen성공
-    void showListenSuccess(QString slog,QHostAddress server_address,quint16 listen_port);
+    void showListenSuccess(QString slog,quint16 listen_port);
 
     //listen 실패
     void showListenFail(QString flog);
+
+    void test_Slot(QTcpSocket *p);
 
 
 
@@ -55,10 +60,27 @@ private slots:
     void on_pushButton_clicked();
 
 private:
-    Ui::MainWindow *ui;
-    bool send_flag;
 
+    Ui::MainWindow *ui;
+    struct SocketInfo
+    {
+        //소켓 기술자 저장
+        qintptr socketInfo;
+        //TcpSocket 주소값.
+        QTcpSocket *qsock;
+        //접속시간
+        time_t connectTime;
+        //접속한 클라이언트의 ip
+        QString connectIp;
+        //접속한 클라이언트의 port
+        quint16 connectPort;
+    };
+    bool send_flag;
+    QList<SocketInfo> infoList;
     qint32 port;
+    qintptr test;
+    QTcpSocket *testsocke;
+
 
 
 };

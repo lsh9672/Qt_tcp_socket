@@ -161,17 +161,17 @@
     </column>
     <column>
      <property name="text">
+      <string>port</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
       <string>socket descriptor</string>
      </property>
     </column>
     <column>
      <property name="text">
       <string>connect time</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>PID</string>
      </property>
     </column>
    </widget>

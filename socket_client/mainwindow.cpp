@@ -94,7 +94,7 @@ void MainWindow::readData()
         QByteArray tempData = client_socket->readAll();
         qDebug() << QString(tempData);
 
-        ui->textBrowser->insertPlainText(QString("Server Send Data  : %1\n").arg(QString(tempData)));
+        ui->textBrowser->insertPlainText(QString("data sent by the server  :  %1\n").arg(QString(tempData)));
 
     }
 
@@ -105,38 +105,38 @@ void MainWindow::on_pushButton_2_clicked()
 {
 
     //디폴트 ip,port
-    QString ip_num = "127.0.0.1";
-    qint32 port_num = 9999;
-
-    //입력받은 ip와 포트 추출
-    ip_num = ui->lineEdit_ip->text();
-    port_num = (ui->lineEdit_port->text()).QString::toUInt();
-
-    //아무것도 입력안하면 디폴트값 대입
-    if(ip_num=="")
+    QString ip_num;
+    qint32 port_num;
+    //ip,port 입력이 비어있으면 실행안함.
+    if(!ui->lineEdit_ip->text().isEmpty() && !ui->lineEdit_port->text().isEmpty())
     {
-        ip_num = "127.0.0.1";
-    }
-    if(port_num == 0)
-    {
-        port_num = 9999;
-    }
-
-    qDebug() << "ip : "<< ip_num << "port" << port_num;
+        //입력받은 ip와 포트 추출
+        ip_num = ui->lineEdit_ip->text();
+        port_num = (ui->lineEdit_port->text()).QString::toUInt();
 
 
-    //연결 시도 및 연결확인
-    connect_flag = connectCheck(ip_num,port_num);
-    //연결되어있으면 Connected success 메시지 출력
-    if(connect_flag)
-    {
-        ui->textBrowser_socket_state->setText(QString("Connected success!!\n"));
+        //연결 시도 및 연결확인
+        connect_flag = connectCheck(ip_num,port_num);
+        //연결되어있으면 Connected success 메시지 출력
+        if(connect_flag)
+        {
+            ui->textBrowser_socket_state->setText(QString("Connected success!!\n"));
+        }
+        //연결 안되어있으면 Connected fail 출력
+        else
+        {
+            ui->textBrowser_socket_state->setText(QString("Connected fail;;;\n"));
+        }
     }
-    //연결 안되어있으면 Connected fail 출력
-    else
-    {
-        ui->textBrowser_socket_state->setText(QString("Connected fail;;;\n"));
-    }
+    ui->textBrowser->insertPlainText(client_socket->localAddress().toString());
+
+    ui->textBrowser->insertPlainText(QString("port: %1").arg(client_socket->localPort()));
+
+    qDebug() << "ip : " << client_socket->localAddress() ;
+    qDebug() << "port : " << QString(client_socket->localPort()) ;
+    qDebug() << "Name : " << client_socket->peerName() ;
+
+
 }
 
 //연결해제 버튼

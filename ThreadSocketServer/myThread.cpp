@@ -2,23 +2,25 @@
 #include "mainwindow.h"
 
 
-MyThread::MyThread(qintptr ID, QObject *parent):
+
+MyThread::MyThread(qintptr ID, QObject *parent,QTcpSocket *sock):
     QThread(parent)
 {
     this->socketDescriptor = ID;
-    //this->main_w = ui;
+    this->client_socket = sock;
 }
 
 //스레드의 start()함수를 사용했을때 실행하는 부분
 void MyThread::run()
 {
+
     //thread로 실행하는 구문
     qDebug() << "T Start!!";
 
     qDebug() << "Thread ID" << QThread::currentThreadId();
 
     //클라이언트의 요청 처리를 위해 소켓 생성
-    client_socket = new QTcpSocket();
+    //client_socket = new QTcpSocket();
 
 
     //setSocketdescriptor는 소켓의 설명자가 성공적으로 설정되면 true, 이를 이용해서 소켓이 제대로 생성되었는지 확인.
@@ -29,14 +31,34 @@ void MyThread::run()
         return;
     }
 
+    //qDebug() << client_socket;
+    //qDebug() << &client_socket;
+    //qDebug() << *(&client_socket);
+    //emit test_Signal(client_socket);
+
+
     //connect를 이용하여 처리할 시그널과 소켓을 연결
     connect(client_socket,SIGNAL(readyRead()),this,SLOT(readData()));
 
-    //connect(main_w,SIGNAL(broadcast_data(QByteArray)),this,SLOT(broadcast_data_send(QByteArray)));
+    //connect(q,SIGNAL(broadcast_data(QByteArray)),this,SLOT(broadcast_data_send(QByteArray)));
 
     connect(client_socket,SIGNAL(disconnected()),this,SLOT(disconnected()));
 
     qDebug() << client_socket->socketDescriptor() <<  "Client connected";
+
+    //peerxxx를 이용하면 클라이언트 소켓에서 원격으로 연결된 host의 정보를 빼낼수 있다
+    //name의 경우에는 connectToHost로 name을 설정해서 접속했다면 알수 있다.
+    /*
+    qDebug() << "ip : " << client_socket->peerAddress() ;
+    qDebug() << "port : " << client_socket->peerPort() ;
+    qDebug() << "Name : " << client_socket->peerName() ;
+    qDebug() << "ip : " << client_socket->localAddress() ;
+    qDebug() << "port : " << client_socket->localPort() ;
+    */
+
+
+
+
     exec();
 
 }
@@ -135,4 +157,3 @@ void MyThread::broadcast_data_send(QByteArray bdata)
     }
 
 }
-

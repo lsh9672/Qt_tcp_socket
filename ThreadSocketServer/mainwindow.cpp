@@ -3,6 +3,7 @@
 
 #include "myThread.h"
 
+//클라이언트 정보 출력을 위한 구조체
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -11,13 +12,14 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     this->setWindowTitle("Server");
 
+
+
     ui->textBrowser->insertPlainText(QString("Qt Version : %1\n").arg(QT_VERSION_STR));
     ui->textBrowser->insertPlainText("Sever Started!\n");
     ui->textBrowser->insertPlainText("-------------------------------logs-------------------------------\n");
 
     //QList<QNetworkAddressEntry> QNetworkInterface::addressEntries();
 
-    port =9999;
 
     const QHostAddress &localhost = QHostAddress(QHostAddress::LocalHost);
     QString all_ip ="";
@@ -53,10 +55,24 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::showConnect(qintptr socketDescriptor)
+void MainWindow::showConnect(qintptr socketDescriptor, time_t timer)
 {
+    test = socketDescriptor;
+
     ui->textBrowser->insertPlainText(QString("[%1 socket] client connected\n").arg(socketDescriptor));
-    MyThread *thread = new MyThread(socketDescriptor,this);
+    QTcpSocket *client_s = new QTcpSocket();
+
+    MyThread *thread = new MyThread(socketDescriptor,this,client_s);
+    //infoList.append(SocketInfo {socketDescriptor,client_s,timer,client_s->peerAddress().toString(),client_s->peerPort()});
+
+    /*
+    foreach(SocketInfo test, infoList)
+    {
+        qDebug() << QString("%1 , %2 , %3 , %4").arg(test.socketInfo).arg(test.connectTime).arg(test.connectIp).arg(test.connectPort);
+    }
+    */
+
+    //connect(thread,SIGNAL(test_Signal(QTcpSocket*)),this,SLOT(test_Slot(QTcpSocket*)));
 
     //읽은 데이터 ui출력
     connect(thread,SIGNAL(sigReadData(qintptr,QString)),this,SLOT(showReadData(qintptr,QString)));
@@ -72,7 +88,6 @@ void MainWindow::showConnect(qintptr socketDescriptor)
 
     //소켓설정중에 에러 발생시 처리
     connect(thread,SIGNAL(error(QTcpSocket::SocketError)),this,SLOT(showSocketError(QTcpSocket::SocketError)));
-
 
 
     connect(thread,SIGNAL(finished()),thread,SLOT(deleteLater()));
@@ -111,9 +126,8 @@ void MainWindow::showSocketError(QTcpSocket::SocketError socketerror)
 }
 
 //listen성공
-void MainWindow::showListenSuccess(QString slog,QHostAddress server_address,quint16 listen_port)
+void MainWindow::showListenSuccess(QString slog,quint16 listen_port)
 {
-    qDebug() << server_address;
     /*
     const QHostAddress &localhost = QHostAddress(QHostAddress::LocalHost);
     QString all_ip ="";
@@ -141,31 +155,50 @@ void MainWindow::showListenFail(QString flog)
     ui->textBrowser_server_state->setText(flog);
 }
 
-
+//서버 실행하는 버튼
 void MainWindow::on_pushButton_start_clicked()
 {
-    port = (ui->lineEdit_port->text()).QString::toUInt();
-    //서버 실행 - 실행시 입력한 포트번호를 넘겨줌.
+    //포트번호를 입력했을때만 실행하도록 함.
+    if(!ui->lineEdit_port->text().isEmpty())
+    {
 
-    MyServer *mserver = new MyServer(this);
+        port = (ui->lineEdit_port->text()).QString::toUInt();
+        //서버 실행 - 실행시 입력한 포트번호를 넘겨줌.
 
-    connect(mserver,SIGNAL(listenSuccess(QString,QHostAddress,quint16)),this,SLOT(showListenSuccess(QString,QHostAddress,quint16)));
-    connect(mserver,SIGNAL(listenFail(QString)),this,SLOT(showListenFail(QString)));
+        MyServer *mserver = new MyServer(this);
 
-    mserver->startServer(port);
+        connect(mserver,SIGNAL(listenSuccess(QString,quint16)),this,SLOT(showListenSuccess(QString,quint16)));
+        connect(mserver,SIGNAL(listenFail(QString)),this,SLOT(showListenFail(QString)));
 
-
-
-    //연결정보 ui출력
-    connect(mserver,SIGNAL(connectClient(qintptr)),this,SLOT(showConnect(qintptr)));
+        mserver->startServer(port);
+        //연결정보 ui출력
+        connect(mserver,SIGNAL(connectClient(qintptr,time_t)),this,SLOT(showConnect(qintptr,time_t)));
+    }
 
 
 }
 
-//broadcasting! 버튼을 눌렀을때 연결된 모든 클라이언트로 데이터를 보냄
+//broadcasting! 버튼을 눌렀을때 연결된 모든 클라이언트로 데이터를 보냄 - broadcast
 void MainWindow::on_pushButton_clicked()
 {
     //입력데이터를 ByteArray로 변환하여 보냄
     emit broadcast_data((ui->textEdit_send_client->toPlainText()).toStdString().c_str());
+
+    /*
+    //broadcast용 소켓을 생성해서 저장한 socket
+    QTcpSocket *test_sock = new QTcpSocket(this);
+    test_sock->setSocketDescriptor(test);
+    test_sock->write((ui->textEdit_send_client->toPlainText()).toStdString().c_str());
+    if(test_sock->waitForBytesWritten())
+    {
+        test_sock->close();
+    }
+    */
+    //testsocke->write((ui->textEdit_send_client->toPlainText()).toStdString().c_str());
+}
+
+void MainWindow::test_Slot(QTcpSocket *p)
+{
+    testsocke = p;
 }
 

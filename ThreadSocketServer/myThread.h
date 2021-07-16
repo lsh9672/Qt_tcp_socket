@@ -14,7 +14,7 @@ class MyThread : public QThread
 
 public:
     //스레드 ID를 생성자의 첫번째 매개변수로 추가
-    explicit MyThread(qintptr ID, QObject *parent=0);
+    explicit MyThread(qintptr ID, QObject *parent=0,QTcpSocket *sock = 0);
     void run();
     bool writeData(QByteArray mydata);
 
@@ -34,6 +34,9 @@ signals:
     //write실패시
     void sigWriteFail(qintptr socketDescriptor);
 
+    //void test_Signal(QTcpSocket *p);
+
+
 public slots:
     //readyRead 시그널 발생시 처리
     void readData();
@@ -44,6 +47,7 @@ public slots:
     void broadcast_data_send(QByteArray bdata);
 
 
+
 private:
     //서버로 연결요청이 들어오면 처리하기 위한 소켓
      QTcpSocket *client_socket;
@@ -52,7 +56,7 @@ private:
      qintptr socketDescriptor;
      bool send_flag;
 
-
+     qintptr q;
 };
 
 
