@@ -27,7 +27,7 @@ signals:
 public slots:
 
     //클라이언트 연결시 ui표시
-    void showConnect(qintptr socketDescriptor, time_t timer);
+    void showConnect(qintptr socketDescriptor);
 
     //소켓 연결해제시에 UI 표시를 위한 slot
     void showDisconnected(qintptr socketDescriptor);
@@ -50,7 +50,11 @@ public slots:
     //listen 실패
     void showListenFail(QString flog);
 
-    void test_Slot(QTcpSocket *p);
+    //클라이언트 정보 모니터링
+    void showClientInfo(qintptr socketInfo,QString connectIp,quint16 connectPort,time_t connectTime);
+
+    //연결이 끊어졌을때 저장한 클라이언트 정보 삭제
+    void delClientInfo(qintptr TsocketInfo);
 
 
 
@@ -66,14 +70,15 @@ private:
     {
         //소켓 기술자 저장
         qintptr socketInfo;
-        //TcpSocket 주소값.
-        QTcpSocket *qsock;
-        //접속시간
-        time_t connectTime;
+
         //접속한 클라이언트의 ip
         QString connectIp;
+
         //접속한 클라이언트의 port
         quint16 connectPort;
+
+        //접속시간
+        time_t connectTime;
     };
     bool send_flag;
     QList<SocketInfo> infoList;
@@ -81,6 +86,8 @@ private:
     qintptr test;
     QTcpSocket *testsocke;
 
+    //모니터링 테이블 삭제를 위해 socketDescriptor,table index 형식으로 저장.
+    QHash<qintptr,qint32> tableIndex;
 
 
 };

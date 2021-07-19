@@ -26,7 +26,7 @@ void MyServer::startServer(qint32 listen_port)
 
 void MyServer::incomingConnection(qintptr socketDescriptor)
 {
-    time_t timer = time(NULL);
+    //time_t timer = time(NULL);
 
     /*
     struct tm* t = localtime(&timer);
@@ -41,7 +41,7 @@ void MyServer::incomingConnection(qintptr socketDescriptor)
     qDebug() << socketDescriptor <<"Connecting...";
 
     //연결이 들어오면 신호를 보내고 ui클래스 쪽에서 이 신호를 받아서 스레드를 만들어서 처리함.
-    emit connectClient(socketDescriptor,timer);
+    emit connectClient(socketDescriptor);
 
 
 }

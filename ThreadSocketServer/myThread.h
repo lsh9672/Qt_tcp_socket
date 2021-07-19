@@ -8,13 +8,14 @@
 #include <QtNetwork>
 #include <QString>
 
+
 class MyThread : public QThread
 {
     Q_OBJECT
 
 public:
     //스레드 ID를 생성자의 첫번째 매개변수로 추가
-    explicit MyThread(qintptr ID, QObject *parent=0,QTcpSocket *sock = 0);
+    explicit MyThread(qintptr ID, QObject *parent=0);
     void run();
     bool writeData(QByteArray mydata);
 
@@ -34,7 +35,11 @@ signals:
     //write실패시
     void sigWriteFail(qintptr socketDescriptor);
 
-    //void test_Signal(QTcpSocket *p);
+    //소켓 기술자,클라이언트 ip, 클라이언트 port, 접속시간
+    void sigClientInfo(qintptr socketInfo,QString connectIp,quint16 connectPort,time_t connectTime);
+
+    //연결이 끊어졌을때 모니터링 정보 삭제
+    void sigClientDel(qintptr socketInfo);
 
 
 public slots:
@@ -55,8 +60,12 @@ private:
      //소켓 설명자(포인터 타입- 소켓 객체의 주소), 소켓을 나타낸다 생각.
      qintptr socketDescriptor;
      bool send_flag;
+     //클라이언트의 상태정보 저장
+     qintptr TsocketInfo;
+     QString TconnectIp;
+     quint16 TconnectPort;
+     time_t TconnectTime;
 
-     qintptr q;
 };
 
 
