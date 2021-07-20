@@ -35,7 +35,7 @@ signals:
     //write실패시
     void sigWriteFail(qintptr socketDescriptor);
 
-    //소켓 기술자,클라이언트 ip, 클라이언트 port, 접속시간
+    //연결정보 모니터링을 위한 gui에 표시를 위한 시그널 - 소켓 기술자,클라이언트 ip, 클라이언트 port, 접속시간
     void sigClientInfo(qintptr socketInfo,QString connectIp,quint16 connectPort,time_t connectTime);
 
     //연결이 끊어졌을때 모니터링 정보 삭제
@@ -45,10 +45,11 @@ signals:
 public slots:
     //readyRead 시그널 발생시 처리
     void readData();
+
     //disconnected 시그널 발생시 처리
     void disconnected();
 
-    //모든 클라이언트로 메시지 보냄
+    //gui에서 전송버튼을 누를경우 발생하는 시그널처리
     void broadcast_data_send(QByteArray bdata);
 
 
@@ -56,18 +57,24 @@ public slots:
 private:
     //서버로 연결요청이 들어오면 처리하기 위한 소켓
      QTcpSocket *client_socket;
-     //MainWindow *main_w;
-     //소켓 설명자(포인터 타입- 소켓 객체의 주소), 소켓을 나타낸다 생각.
+
+     //소켓 기술자(소켓을 식별할수 있는 값)
      qintptr socketDescriptor;
+
+     //데이터가 전부 write되었는지 확인
      bool send_flag;
+
      //클라이언트의 상태정보 저장
+     //소켓 기술자(식별할수 있는 값)
      qintptr TsocketInfo;
+     //클라이언트의 ip
      QString TconnectIp;
+     //클라이언트의 port
      quint16 TconnectPort;
+     //연결시간(단위: 초)
      time_t TconnectTime;
 
 };
-
 
 #endif // MYTHREAD_H
 

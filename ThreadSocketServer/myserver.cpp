@@ -26,17 +26,6 @@ void MyServer::startServer(qint32 listen_port)
 
 void MyServer::incomingConnection(qintptr socketDescriptor)
 {
-    //time_t timer = time(NULL);
-
-    /*
-    struct tm* t = localtime(&timer);
-    qDebug() << "년 : " <<t->tm_year + 1900;
-    qDebug() << "월 : " <<t->tm_mon + 1;
-    qDebug() << "일 : " <<t->tm_mday;
-    qDebug() << "시 : " <<t->tm_hour;
-    qDebug() << "분 : " <<t->tm_min;
-    qDebug() << "초 : " <<t->tm_sec;
-    */
 
     qDebug() << socketDescriptor <<"Connecting...";
 

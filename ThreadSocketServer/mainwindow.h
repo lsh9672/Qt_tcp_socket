@@ -38,7 +38,7 @@ public slots:
     //write 성공여부
     void showWriteSuccess(qintptr socketDescriptor);
 
-    //실패시
+    //write 실패했을때
     void showWriteFail(qintptr socketDescriptor);
 
     //소켓에러
@@ -66,29 +66,8 @@ private slots:
 private:
 
     Ui::MainWindow *ui;
-    struct SocketInfo
-    {
-        //소켓 기술자 저장
-        qintptr socketInfo;
-
-        //접속한 클라이언트의 ip
-        QString connectIp;
-
-        //접속한 클라이언트의 port
-        quint16 connectPort;
-
-        //접속시간
-        time_t connectTime;
-    };
-    bool send_flag;
-    QList<SocketInfo> infoList;
+    QList<qintptr> infoList;
     qint32 port;
-    qintptr test;
-    QTcpSocket *testsocke;
-
-    //모니터링 테이블 삭제를 위해 socketDescriptor,table index 형식으로 저장.
-    QHash<qintptr,qint32> tableIndex;
-
 
 };
 #endif // MAINWINDOW_H
