@@ -75,14 +75,21 @@ void MyThread::readData()
     //소켓으로 부터 읽을수 있는 바이트가 1개 이상이면 실행한다.
     if(client_socket->bytesAvailable()>0)
     {
+        while(client_socket->bytesAvailable()>0)
+        {
+            if(client_socket->waitForReadyRead(500))
+            {
+                //소켓으로 부터 모든 데이터를 읽어서 저장한다.
+                data2 = data2 + client_socket->readAll();
+                qDebug() << "client to server : " << data2;
+            }
 
-        //소켓으로 부터 모든 데이터를 읽어서 저장한다.
-        data2 = client_socket->readAll();
-        qDebug() << "client to server : " << QString(data2);
+        }
         //gui 출력을 위해 받은 데이터를 전부 읽으면 시그널을 발생시킨다.
         emit sigReadData(client_socket->socketDescriptor(),QString(data2));
         //발생된 시그널을 처리할수 있도록 잠시 스레드를 멈춤
         this->wait(100);
+
     }
 
     //writeData함수의 결과가 true 이면 데이터를 전부 write하는데 성공 , false이면 실패 or 아직 전부 못함.

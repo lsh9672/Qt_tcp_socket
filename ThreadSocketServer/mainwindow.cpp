@@ -59,7 +59,7 @@ MainWindow::~MainWindow()
 void MainWindow::showConnect(qintptr socketDescriptor)
 {
 
-    ui->textBrowser->insertPlainText(QString("[%1 sockt] client connected\n").arg(socketDescriptor));
+    ui->textBrowser->insertPlainText(QString("[%1 socket] client connected\n").arg(socketDescriptor));
 
     MyThread *thread = new MyThread(socketDescriptor,this);
 

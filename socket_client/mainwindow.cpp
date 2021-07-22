@@ -69,56 +69,72 @@ bool MainWindow::writeData(QByteArray data)
 //send 버튼
 void MainWindow::on_pushButton_clicked()
 {
-    QString client_message;
-
-    //client가 보낼 메시지를 QString변수에 담음(Qstring은 qt에서 사용하는 String 타입정도로 생각)
-    client_message=ui->textEdit->toPlainText();
-
-    //ui->textEdit_2->setText(QString("client_message %1").arg(temp));
-    
-
-    //연결이 되었으면
-    if(connect_flag)
+    //연결이 되어있는 상태
+    if(client_socket->state() == QAbstractSocket::ConnectedState)
     {
 
-        //QString.toStdString().c_str => char* 형태로 만듦
-        send_flag = writeData(client_message.toStdString().c_str());
+        QString client_message;
+
+        //client가 보낼 메시지를 QString변수에 담음(Qstring은 qt에서 사용하는 String 타입정도로 생각)
+        client_message=ui->textEdit->toPlainText();
+
+        //ui->textEdit_2->setText(QString("client_message %1").arg(temp));
 
 
-        //데이터가 제대로 안보내지면
-        if(!send_flag)
+        //연결이 되었으면
+        if(connect_flag)
         {
-            ui->textBrowser->setText("send fail");
+
+            //QString.toStdString().c_str => char* 형태로 만듦
+            send_flag = writeData(client_message.toStdString().c_str());
+
+
+            //데이터가 제대로 안보내지면
+            if(!send_flag)
+            {
+                ui->textBrowser->setText("send fail");
+            }
+
         }
+     }
 
-    }
+      //연결이 잘 안되었으면
+     else if(client_socket->state() == QAbstractSocket::UnconnectedState)
+     {
 
-    //연결이 잘 안되었으면
-    else
-    {
+         ui->textBrowser->insertPlainText("connect fail! - please connect server\n");
+     }
 
-        ui->textBrowser->insertPlainText("connect fail! - please connect server\n");
-    }
 }
 
 //보낸 데이터에 대해서 리턴
 void MainWindow::readData()
 {
+    //서버로부터 받은 데이터
+    QByteArray tempData;
     if(client_socket->bytesAvailable()>0)
     {
-        qDebug()<<client_socket->bytesAvailable();
 
-        //서버로부터 받은 데이터
-        //QByteArray tempData = client_socket->readAll();
-        qDebug()<< "data type : "<< typeid (client_socket->readAll()).name();
-        //QDataStream in(&tempData,QIODevice::ReadWrite);
-        //qDebug() << "QByteArray Test : " << tempData;
-        //qDebug() << QString(tempData);
+        while(client_socket->bytesAvailable()>0 )
+        {
+            //데이터가 대용량이면 나눠서 보내게 되는데 500msec안에 다시 데이터가 들어오면 기존의 데이터라고 판단.
+            if(client_socket->waitForReadyRead(500))
+            {
+                qDebug()<< "read data size" <<client_socket->bytesAvailable();
 
-        //ui->textBrowser->insertPlainText(QString("data sent by the server  :  %1\n").arg(tempData));
+                tempData = tempData + client_socket->readAll();
+                qDebug() << "read data" << tempData;
+                //qDebug() << tempData[0] << tempData[1] << tempData[2] << tempData[3] << tempData[4] << tempData[5];
+                //qDebug()<< "data type : "<< typeid (client_socket->readAll()).name();
+                //QDataStream in(&tempData,QIODevice::ReadWrite);
+                //qDebug() << "QByteArray Test : " << tempData;
+                //qDebug() << QString(tempData);
 
+            }
+        }
+
+        ui->textBrowser->insertPlainText(QString("data sent by the server  :  %1\n").arg(QString(tempData)));
     }
-
 }
 
 //ip,port입력후 서버와 연결시도
@@ -151,11 +167,6 @@ void MainWindow::on_pushButton_2_clicked()
         }
     }
 
-    qDebug() << "ip : " << client_socket->localAddress() ;
-    qDebug() << "input : " << ip_num;
-    qDebug() << "port : " << client_socket->localPort() ;
-    qDebug() << "Name : " << client_socket->peerName() ;
-
 
 }
 
@@ -184,6 +195,7 @@ void MainWindow::on_pushButton_3_clicked()
 void MainWindow::disconnected()
 {
     client_socket->deleteLater();
-    ui->textBrowser->insertPlainText("disconnect from server");
+    ui->textBrowser->insertPlainText("disconnect from server\n");
+    ui->textBrowser_socket_state->setText("disconnected;");
 }
 
