@@ -25,6 +25,9 @@ public slots:
     //데이터 전달 확인용 함수
     bool writeData(QByteArray data);
 
+    //서버로 부터 연결이 끊어졌을 경우
+    void disconnected();
+
 private slots:
     //send 버튼
     void on_pushButton_clicked();
