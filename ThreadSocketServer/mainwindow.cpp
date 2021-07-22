@@ -10,7 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    this->setWindowTitle("Server");
+    this->setWindowTitle("TCP Server");
 
     qDebug() << "ui address"<< ui;
 

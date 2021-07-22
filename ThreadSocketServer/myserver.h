@@ -4,6 +4,7 @@
 #include "myThread.h"
 
 
+
 class MyServer : public QTcpServer
 {
 
