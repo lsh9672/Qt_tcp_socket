@@ -129,8 +129,14 @@ void MainWindow::readData()
             {
 
                  tempData = tempData + client_socket->readAll();
+                 QByteArray a = "a";
 
-                 qDebug() << "read data" << tempData;
+                 qDebug() << "hex check" << a.toHex();
+
+                 qDebug() << "check1" << tempData.toHex(':');
+                 tempData.prepend(0x65);
+
+                 qDebug() << "read data" << tempData[0];
 
                     //qDebug() << tempData[0] << tempData[1] << tempData[2] << tempData[3] << tempData[4] << tempData[5];
                     //qDebug()<< "data type : "<< typeid (client_socket->readAll()).name(); => 변수타입 확인.

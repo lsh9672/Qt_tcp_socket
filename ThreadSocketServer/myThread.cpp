@@ -144,7 +144,8 @@ bool MyThread::writeData(QByteArray mydata)
 //gui로 부터 broadcast버튼이 눌렸을때.
 void MyThread::broadcast_data_send(QByteArray bdata)
 {
-
+    //bdata.prepend()
+    qDebug()<<"size"<< bdata.size();
     client_socket->write(bdata);
     if(!client_socket->waitForBytesWritten())
     {
