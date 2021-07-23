@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->textBrowser->insertPlainText(QString("Qt Version : %1\n").arg(QT_VERSION_STR));
     ui->textBrowser->insertPlainText("Sever Started!\n");
-    ui->textBrowser->insertPlainText("-------------------------------logs-------------------------------\n");
+    ui->textBrowser->insertPlainText("-------------------------------logs----------------------------\n");
 
     const QHostAddress &localhost = QHostAddress(QHostAddress::LocalHost);
     QString all_ip ="";

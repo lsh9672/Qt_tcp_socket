@@ -27,9 +27,9 @@
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>180</x>
       <y>500</y>
-      <width>171</width>
+      <width>141</width>
       <height>41</height>
      </rect>
     </property>
@@ -166,6 +166,19 @@
     </property>
     <property name="text">
      <string>socket state</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_4">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>500</y>
+      <width>141</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>upload</string>
     </property>
    </widget>
   </widget>

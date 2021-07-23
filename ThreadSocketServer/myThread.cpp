@@ -23,6 +23,7 @@ void MyThread::run()
         emit error(client_socket->error());
         return;
     }
+    qDebug() <<"buffer Size"<<client_socket->readBufferSize();
 
     /* ui에 표시할 값들 */
     // 생성된 소켓의 기술자
@@ -69,49 +70,63 @@ void MyThread::readData()
 {
     //데이터를 스트림으로 보내기 위해서 ByteArray를 사용한다.
     QByteArray data2;
-
+    QByteArray temp;
     qDebug() << "Thread numeber : " << client_socket->socketDescriptor();
 
     //소켓으로 부터 읽을수 있는 바이트가 1개 이상이면 실행한다.
     if(client_socket->bytesAvailable()>0)
     {
+        qDebug()<<"read data size1"<< client_socket->bytesAvailable();
+        temp = client_socket->readLine();
+
+        qDebug()<<"check data line"<< temp;
+
+        qDebug()<<"read data size2"<< client_socket->bytesAvailable();
         while(client_socket->bytesAvailable()>0)
         {
-            if(client_socket->waitForReadyRead(500))
-            {
+            //if(!client_socket->waitForReadyRead(500))
+            //{
                 //소켓으로 부터 모든 데이터를 읽어서 저장한다.
                 data2 = data2 + client_socket->readAll();
                 qDebug() << "client to server : " << data2;
-            }
+            //}
 
         }
-        //gui 출력을 위해 받은 데이터를 전부 읽으면 시그널을 발생시킨다.
-        emit sigReadData(client_socket->socketDescriptor(),QString(data2));
+
+
+        //RedayRead() 신호가 발생하고 읽을수 있는 새 데이터가 있으면 true반환.
+        //오류또는 작업시간지나면 false 반환, 즉
+        if(!client_socket->waitForReadyRead(100))
+        {
+            //gui 출력을 위해 받은 데이터를 전부 읽으면 시그널을 발생시킨다.
+            qDebug() << "sig check::";
+            emit sigReadData(client_socket->socketDescriptor(),QString(data2));
         //발생된 시그널을 처리할수 있도록 잠시 스레드를 멈춤
-        this->wait(100);
+        //this->wait(100);
 
+            //writeData함수의 결과가 true 이면 데이터를 전부 write하는데 성공 , false이면 실패 or 아직 전부 못함.
+            send_flag=writeData(data2);
+
+            if(send_flag)
+            {
+                qDebug() << "Data Return Success!";
+                //write 성공여부를 위한 Signal
+                emit sigWriteSuccess(client_socket->socketDescriptor());
+                //this->wait(100);
+            }
+            else
+            {
+                qDebug() << "Data Return Fail";
+                //실패시 화면출력을 위한 signal
+                emit sigWriteFail(client_socket->socketDescriptor());
+                //this->wait(100);
+            }
+        }
     }
 
-    //writeData함수의 결과가 true 이면 데이터를 전부 write하는데 성공 , false이면 실패 or 아직 전부 못함.
-    send_flag=writeData(data2);
-
-    if(send_flag)
-    {
-        qDebug() << "Data Return Success!";
-        //write 성공여부를 위한 Signal
-        emit sigWriteSuccess(client_socket->socketDescriptor());
-        this->wait(100);
-    }
-    else
-    {
-        qDebug() << "Data Return Fail";
-        //실패시 화면출력을 위한 signal
-        emit sigWriteFail(client_socket->socketDescriptor());
-        this->wait(100);
-    }
 
     //만약을 대비해 소켓을 비워줌(남은데이터 전부 write)
-    client_socket->flush();
+    //client_socket->flush();
 }
 
 
@@ -129,6 +144,7 @@ bool MyThread::writeData(QByteArray mydata)
 //gui로 부터 broadcast버튼이 눌렸을때.
 void MyThread::broadcast_data_send(QByteArray bdata)
 {
+
     client_socket->write(bdata);
     if(!client_socket->waitForBytesWritten())
     {
@@ -138,5 +154,6 @@ void MyThread::broadcast_data_send(QByteArray bdata)
     {
         qDebug() << "data success";
     }
+
 
 }
