@@ -13,6 +13,7 @@ class MyServer : public QTcpServer
 public:
     explicit MyServer(QObject *parent=0);
     void startServer(qint32 listen_port);
+    ~MyServer();
 signals:
     //클라이언트가 접속했을때 UI에 표시를 위하여 시그널을 보냄-인자로 접속한 소켓의 설명자(번호)
     void connectClient(qintptr socketDescriptor);

@@ -1,5 +1,7 @@
-   #include "mainwindow.h"
+#include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QFileDialog>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -10,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     //소켓 생성
     client_socket = new QTcpSocket(this);
+
 
     qDebug() <<"buffer Size"<<client_socket->readBufferSize();
 
@@ -23,7 +26,11 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-
+    if(client_socket->isOpen())
+    {
+        client_socket->close();
+    }
+    delete ui;
 }
 
 //연결확인을 위한 함수, 인자로 연결할 서버의 ip를 받음
@@ -31,6 +38,12 @@ bool MainWindow::connectCheck(QString server_ip, qint32 server_port)
 {
     //서버와 연결을 위한 ip와 포트번호넣어주기
     client_socket->connectToHost(server_ip,server_port);
+
+    QDir dir;
+    QString temp_path ="socket_file";
+    dir.mkpath(temp_path);
+    qDebug() << QApplication::applicationDirPath();
+    qDebug() <<  QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
     //연결 여부를 알려줌(bool 타입)
     if(client_socket->waitForConnected(1000))
@@ -45,37 +58,7 @@ bool MainWindow::connectCheck(QString server_ip, qint32 server_port)
 
 }
 
-//서버로 보낼 데이터를 쓰고, 여부를 확인. 인자로는 서버로 보낼 데이터
-bool MainWindow::writeData(QByteArray data)
-{
-    //state() 소켓의 상태 리턴, 연결이 되어있으면 데이터를 씀
-    if(client_socket->state() == QAbstractSocket::ConnectedState)
-    {
-        QString predata = "image\n";
-        data = predata.toUtf8() + data;
-        qDebug()<< "data type : "<< typeid (data.toStdString().c_str()).name();
-        qDebug()<< "data type : "<< typeid (data).name();
-        //QString -> QByteArray
-        qDebug()<< "data type : "<< typeid (predata.toUtf8()).name();
-
-        client_socket->write(data);
-
-    }
-    //client_socket->flush();
-    //소켓에 있는 데이터를 다 쓰면 리턴
-    if(client_socket->waitForBytesWritten(3000))
-    {
-        return true;
-    }
-    else
-    {
-        qDebug() << client_socket->error();
-        return false;
-    }
-}
-
-
-//send 버튼
+//메세지 보내는 버튼(send)
 void MainWindow::on_pushButton_clicked()
 {
     //연결이 되어있는 상태
@@ -83,38 +66,108 @@ void MainWindow::on_pushButton_clicked()
     {
 
         QString client_message;
+        QByteArray header,send_message,test1;
+
 
         //client가 보낼 메시지를 QString변수에 담음(Qstring은 qt에서 사용하는 String 타입정도로 생각)
         client_message=ui->textEdit->toPlainText();
+        ui->textBrowser_socket_state->setText(QString::number(client_message.toUtf8().size()));
 
-        //ui->textEdit_2->setText(QString("client_message %1").arg(temp));
+        //메시지 일때 헤더만들기
+        header.prepend(QString("type1:ms,type2:non,length:%1").arg(client_message.size()).toUtf8());
+
+        //헤더크기 128로 고정
+        header.resize(128);
+
+        //보낼 메시지 바이트로 만들기
+        send_message = client_message.toUtf8();
+
+        //보낼메시지에 헤더 붙이기
+        send_message.prepend(header);
 
 
-        //연결이 되었으면
-        if(connect_flag)
-        {
+        //소켓으로 데이터 쓰기
+        QDataStream socketStream(client_socket);
 
-            //QString.toStdString().c_str => char* 형태로 만듦
-            send_flag = writeData(client_message.toUtf8());
+        socketStream.setVersion(QDataStream::Qt_5_12);
 
+        socketStream << send_message;
 
-            //데이터가 제대로 안보내지면
-            if(!send_flag)
-            {
-                ui->textBrowser->setText("send fail");
-            }
-
-        }
      }
 
       //연결이 잘 안되었으면
-     else if(client_socket->state() == QAbstractSocket::UnconnectedState)
-     {
+    else if(client_socket->state() == QAbstractSocket::UnconnectedState)
+    {
 
          ui->textBrowser->insertPlainText("connect fail! - please connect server\n");
-     }
+    }
 
 }
+
+
+//파일 보내는 버튼
+void MainWindow::on_pushButton_4_clicked()
+{
+    QByteArray header,send_message;
+    QString file_path = ui->textBrowser_file_path->toPlainText();
+    qDebug() << file_path;
+
+    //파일 이름이 비어있으면 에러문구 출력
+    if(file_path.isEmpty())
+    {
+        ui->textBrowser->setText("file path is empty!!\n");
+        return;
+    }
+
+    //입력받은 파일을 byte array로 가져오기
+    QFile file(file_path);
+
+    //파일을 읽을 수 없으면
+    if(!file.open(QFile::ReadOnly))
+    {
+        ui->textBrowser->setText("file path is incorrect");
+        QMessageBox::critical(this,"socket client","file is no readable");
+    }
+
+    //파일이 제대로 열리면
+    else
+    {
+        //파일경로가 제대로 되었을때만 실행
+        ui->textBrowser->setText("");
+        send_message = file.readAll();
+        qDebug() << "file size : " << send_message.size();
+        //경로명에서 확장자 추출
+        qDebug() <<"extension(type2) : " <<file_path.split(".")[1].toLower();
+
+        if(file.size() == send_message.size())
+        {
+            //파일 일때 헤더만들기
+            header.prepend(QString("type1:file,type2:%1,length:%2").arg(file_path.split(".")[1].toLower()).arg(send_message.size()).toUtf8());
+
+            //헤더크기 128byte로 고정
+            header.resize(128);
+            qDebug()<< "header size : " << header.size();
+
+            //보낼메시지에 헤더 붙이기
+            send_message.prepend(header);
+
+            //소켓으로 데이터 쓰기
+            QDataStream socketStream(client_socket);
+
+            socketStream.setVersion(QDataStream::Qt_5_12);
+
+            socketStream << send_message;
+
+            //client_socket->write(send_message);
+        }
+        else
+        {
+            QMessageBox::critical(this,"socket client","file read error");
+        }
+    }
+
+}
+
 
 //보낸 데이터에 대해서 리턴
 void MainWindow::readData()
@@ -125,25 +178,17 @@ void MainWindow::readData()
 
     if(client_socket->bytesAvailable()>0)
     {
-            while(client_socket->bytesAvailable()>0 )
-            {
 
-                 tempData = tempData + client_socket->readAll();
-                 QByteArray a = "a";
+          tempData = client_socket->readAll();
+          QByteArray a = "a";
 
-                 qDebug() << "hex check" << a.toHex();
+          qDebug() << "read data" << tempData[0];
 
-                 qDebug() << "check1" << tempData.toHex(':');
-                 tempData.prepend(0x65);
-
-                 qDebug() << "read data" << tempData[0];
-
-                    //qDebug() << tempData[0] << tempData[1] << tempData[2] << tempData[3] << tempData[4] << tempData[5];
-                    //qDebug()<< "data type : "<< typeid (client_socket->readAll()).name(); => 변수타입 확인.
-                    //QDataStream in(&tempData,QIODevice::ReadWrite);
-                    //qDebug() << "QByteArray Test : " << tempData;
-                    //qDebug() << QString(tempData);
-            }
+          //qDebug() << tempData[0] << tempData[1] << tempData[2] << tempData[3] << tempData[4] << tempData[5];
+          //qDebug()<< "data type : "<< typeid (client_socket->readAll()).name(); => 변수타입 확인.
+          //QDataStream in(&tempData,QIODevice::ReadWrite);
+          //qDebug() << "QByteArray Test : " << tempData;
+          //qDebug() << QString(tempData);
 
             ui->textBrowser->insertPlainText(QString("data sent by the server  :  %1\n").arg(QString(tempData)));
     }
@@ -210,7 +255,15 @@ void MainWindow::disconnected()
 }
 
 
-void MainWindow::on_pushButton_4_clicked()
+
+
+void MainWindow::on_pushButton_file_select_clicked()
 {
+    //파일 선택창 만들기.
+    QString file_path = QFileDialog::getOpenFileName(this,"select file","C:\\Users\\etri","Files(*.*)");
+
+
+    //file path 필드에 경로 보여주기
+    ui->textBrowser_file_path->setText(file_path);
 }
 

@@ -8,6 +8,11 @@ MyServer::MyServer(QObject *parent):
 {
     ;
 }
+MyServer::~MyServer()
+{
+    this->close();
+    this->deleteLater();
+}
 
 void MyServer::startServer(qint32 listen_port)
 {

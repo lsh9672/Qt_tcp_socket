@@ -8,12 +8,22 @@ MyThread::MyThread(qintptr ID, QObject *parent):
 {
     this->socketDescriptor = ID;
 }
+MyThread::~MyThread()
+{
+    if(client_socket->isOpen())
+    {
+        client_socket->close();
+        client_socket->deleteLater();
+    }
+}
 
 //스레드의 start()함수를 사용했을때 실행하는 부분
 void MyThread::run()
 {
+
     //클라이언트의 요청 처리를 위해 소켓 생성
     client_socket = new QTcpSocket();
+    //client_socket->setReadBufferSize(30);
 
 
     //소켓 기술자를 설정,성공적으로 설정되면 true, 이를 이용해서 소켓이 제대로 생성되었는지 확인.
@@ -23,7 +33,9 @@ void MyThread::run()
         emit error(client_socket->error());
         return;
     }
+    qDebug() << QString("%1 socket port %2").arg(client_socket->socketDescriptor()).arg(client_socket->localPort());
     qDebug() <<"buffer Size"<<client_socket->readBufferSize();
+
 
     /* ui에 표시할 값들 */
     // 생성된 소켓의 기술자
@@ -39,6 +51,7 @@ void MyThread::run()
     emit sigClientInfo(TsocketInfo,TconnectIp,TconnectPort,TconnectTime);
 
     //connect를 이용하여 처리할 시그널과 소켓을 연결
+
     connect(client_socket,SIGNAL(readyRead()),this,SLOT(readData()));
 
     connect(client_socket,SIGNAL(disconnected()),this,SLOT(disconnected()));
@@ -68,44 +81,181 @@ void MyThread::disconnected()
 //readyRead 시그널 처리
 void MyThread::readData()
 {
-    //데이터를 스트림으로 보내기 위해서 ByteArray를 사용한다.
-    QByteArray data2;
-    QByteArray temp;
-    qDebug() << "Thread numeber : " << client_socket->socketDescriptor();
+    //qDebug() << "read signal check :" << check;
 
-    //소켓으로 부터 읽을수 있는 바이트가 1개 이상이면 실행한다.
+    //데이터를 스트림으로 보내기 위해서 ByteArray를 사용한다.
+    //QByteArray data2,temp_save_buffer;
+    //QString header;
+    QByteArray buffer;
+
+    //데이터스트림을 이용해서 소켓 데이터를 받는다.
     if(client_socket->bytesAvailable()>0)
     {
-        qDebug()<<"read data size1"<< client_socket->bytesAvailable();
-        temp = client_socket->readLine();
+        //QTcpSocket *test = reinterpret_cast<QTcpSocket*>(sender());
 
-        qDebug()<<"check data line"<< temp;
+        QDataStream socketStream(client_socket);
+        socketStream.setVersion(QDataStream::Qt_5_12);
 
-        qDebug()<<"read data size2"<< client_socket->bytesAvailable();
-        while(client_socket->bytesAvailable()>0)
+        //a++;
+        //qDebug()<<"signal call count" <<a;
+
+        socketStream.startTransaction();
+
+        socketStream >> buffer;
+
+
+        if(!socketStream.commitTransaction())
         {
-            //if(!client_socket->waitForReadyRead(500))
-            //{
-                //소켓으로 부터 모든 데이터를 읽어서 저장한다.
-                data2 = data2 + client_socket->readAll();
-                qDebug() << "client to server : " << data2;
-            //}
+            qDebug()<<"commit check : "<< a;
+            return;
+        }
+
+        qDebug() << "recieve data size check : " << buffer.size();
+        //이부분이 실행되면 보낸 데이터를 buffer에 다 썼다는 이야기
+        //헤더열어보기
+        QString header = buffer.mid(0,128);
+
+        //데이터부분 저장
+        QByteArray body = buffer.mid(128);
+
+        //헤더에서 메시지인지 파일인지 확인을 위해
+        QString type1 = header.split(",")[0].split(":")[1];
+
+        qDebug() << "header check : " << QString(header);
+
+        //데이터 사이즈 체크를 위해
+        int check_length=0;
+
+        if(type1=="ms")
+        {
+            //데이터 사이즈 저장
+            check_length = header.split(",")[2].split(":")[1].toInt();
+
+            //length 필드와 받아서 저장한 데이터 크기가 같다면 실행
+            if(check_length == body.size())
+            {
+                QString data2 = QString(body);
+                emit sigReadData(client_socket->socketDescriptor(),data2);
+
+                qDebug() << "data size : " << body.size();
+
+
+                send_flag=writeData(body);
+
+                if(send_flag)
+                {
+                    qDebug() << "Data Return Success!";
+                    //write 성공여부를 위한 Signal
+                    emit sigWriteSuccess(client_socket->socketDescriptor());
+                    //this->wait(100);
+                }
+                else
+                {
+                    qDebug() << "Data Return Fail";
+                    //실패시 화면출력을 위한 signal
+                    emit sigWriteFail(client_socket->socketDescriptor());
+                    //this->wait(100);
+                }
+                buffer.clear();
+            }
+            //데이터가 중간에 유실되거나 함-> 다시 보내야됨.
+            else if(check_length>0)
+            {
+                qDebug() << "data send fail";
+
+            }
 
         }
 
-
-        //RedayRead() 신호가 발생하고 읽을수 있는 새 데이터가 있으면 true반환.
-        //오류또는 작업시간지나면 false 반환, 즉
-        if(!client_socket->waitForReadyRead(100))
+        // 파일인 경우
+        else if(type1=="file")
         {
-            //gui 출력을 위해 받은 데이터를 전부 읽으면 시그널을 발생시킨다.
-            qDebug() << "sig check::";
-            emit sigReadData(client_socket->socketDescriptor(),QString(data2));
-        //발생된 시그널을 처리할수 있도록 잠시 스레드를 멈춤
-        //this->wait(100);
 
-            //writeData함수의 결과가 true 이면 데이터를 전부 write하는데 성공 , false이면 실패 or 아직 전부 못함.
-            send_flag=writeData(data2);
+            //데이터 사이즈 저장
+            check_length = header.split(",")[2].split(":")[1].toInt();
+
+            //데이터를 원래크기만큼 받아서 실제로 처리하는 부분
+            if(check_length == body.size())
+            {
+                //파일 저장할 디렉토리 생성 - 기존에 있으면 무시, 없으면 생성(현재경로에 생성)
+                QDir dir;
+                //사용자의 데스크탑 디렉토리 반환(데스크탑개념이 없는 시스템에서 homelocation과 동일) + 생성할 폴더
+                QString temp_path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)+"/socket_file/";
+
+                //소켓기술자 별로 폴더를 구분하기 위해서
+                temp_path= temp_path.append(QString::number(client_socket->socketDescriptor())+"/");
+                dir.mkpath(temp_path);
+                qDebug() <<temp_path;
+
+                //파일확장자 가져오기
+                QString file_extension = header.split(",")[1].split(":")[1];
+
+                //파일명으로 쓸 현재시간 (초)가져옴
+                QString fileName = QString::number(time(NULL));
+
+                //확장자를 붙여서 완전한 파일이름 만들기
+                fileName = fileName.append("."+file_extension);
+                qDebug() << "file path cehck" << fileName;
+                qDebug() << "file path cehck2" << temp_path+fileName;
+
+                //위에서 만든 경로로 파일열기
+                QFile file(temp_path+fileName);
+
+                //파일을 열수 없는 경우
+                if(!file.open(QIODevice::WriteOnly))
+                {
+                    return;
+                }
+                file.write(body);
+                //gui 출력을 위해서
+                emit sigFileSave(temp_path+fileName);
+
+                qDebug() << "data size : " << body.size();
+                buffer.clear();
+            }
+        }
+        //헤더 분석 불가
+        else
+        {
+            qDebug() <<"header error";
+        }
+
+
+    /* 원래코드
+    //헤더가 붙어있는 데이터인지 아닌지 확인
+    if(header.split(",")[0].split(":")[1] =="ms" || header.split(",")[0].split(":")[1] =="file")
+    {
+        //헤더에서 메시지인지 파일인지 확인을 위해
+        type1 = header.split(",")[0].split(":")[1];
+
+        //헤더를 빼고 다시 버퍼에 넣어둠
+        save_buffer = buffer.mid(128);
+    }
+    else
+    {
+        temp_save_buffer = buffer;
+    }
+
+
+    //헤더가 메시지인 경우
+    if(type1=="ms")
+    {
+        //데이터 사이즈 저장
+        check_length = header.split(",")[2].split(":")[1].toInt();
+
+        //체크 크기에서 받은 크기를 뺐을때 0이 되면 데이터가 전부온것
+        check_length = check_length - save_buffer.size();
+
+        //length 필드와 받아서 저장한 데이터 크기가 같다면 실행
+        if(check_length == 0)
+        {
+            QString data2 = QString(save_buffer);
+            emit sigReadData(client_socket->socketDescriptor(),data2);
+
+            qDebug() << "data size : " << save_buffer.size();
+
+
+            send_flag=writeData(save_buffer);
 
             if(send_flag)
             {
@@ -121,20 +271,108 @@ void MyThread::readData()
                 emit sigWriteFail(client_socket->socketDescriptor());
                 //this->wait(100);
             }
+            save_buffer.clear();
+            temp_save_buffer.clear();
+            buffer.clear();
         }
+        //length 필드와 받아서 저장한 데이터 크기가 다르면 아직 안온것
+        else if(check_length>0)
+        {
+            save_buffer = save_buffer + temp_save_buffer;
+
+        }
+
+
+    }
+    // 파일인 경우
+    else if(type1=="file")
+    {
+
+        //데이터 사이즈 저장
+        check_length = header.split(",")[2].split(":")[1].toInt();
+
+        //체크 크기에서 받은 크기를 뺐을때 0이 되면 데이터가 전부온것
+        check_length = check_length - save_buffer.size();
+
+        //데이터를 원래크기만큼 받아서 실제로 처리하는 부분
+        if(check_length == 0)
+        {
+
+            //파일 저장할 디렉토리 생성 - 기존에 있으면 무시, 없으면 생성(현재경로에 생성)
+            QDir dir;
+            //사용자의 데스크탑 디렉토리 반환(데스크탑개념이 없는 시스템에서 homelocation과 동일) + 생성할 폴더
+            QString temp_path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)+"/socket_file/";
+
+            //소켓기술자 별로 폴더를 구분하기 위해서
+            temp_path= temp_path.append(QString::number(client_socket->socketDescriptor())+"/");
+            dir.mkpath(temp_path);
+            qDebug() <<temp_path;
+
+            //파일확장자 가져오기
+            QString file_extension = header.split(",")[1].split(":")[1];
+
+            //파일명으로 쓸 현재시간 (초)가져옴
+            QString fileName = QString::number(time(NULL));
+
+            //확장자를 붙여서 완전한 파일이름 만들기
+            fileName = fileName.append("."+file_extension);
+            qDebug() << "file path cehck" << fileName;
+            qDebug() << "file path cehck2" << temp_path+fileName;
+
+            //위에서 만든 경로로 파일열기
+            QFile file(temp_path+fileName);
+
+            //파일을 열수 없는 경우
+            if(!file.open(QIODevice::WriteOnly))
+            {
+                return;
+            }
+            file.write(save_buffer);
+            //gui 출력을 위해서
+            emit sigFileSave(temp_path+fileName);
+
+
+
+            qDebug() << "data size : " << save_buffer.size();
+
+            save_buffer.clear();
+            temp_save_buffer.clear();
+            buffer.clear();
+        }
+
+        //length 필드와 받아서 저장한 데이터 크기가 다르면 아직 안온것
+        else if(check_length>0)
+        {
+            save_buffer = save_buffer + temp_save_buffer;
+
+        }
+
+
+
     }
 
+    //헤더가 아니라 데이터 부분이 나눠져서 왔을 경우
+    else
+    {
+        qDebug() << "data chunk test1 : "<< send_data.size();
+        //받은 데이터를 버퍼에 이어붙이기
+        send_data = send_data+buffer;
+        qDebug() << "data chunk test2 : "<< send_data.size();
+    }
+    */
 
-    //만약을 대비해 소켓을 비워줌(남은데이터 전부 write)
-    //client_socket->flush();
+    }
+
 }
 
 
+//받은데이터를 클라이언트로 다시 쓰는 부분
 bool MyThread::writeData(QByteArray mydata)
 {
+    //
     QString returnData = QString("[%1 socket] return data => ").arg(client_socket->socketDescriptor());
     returnData.append(QString(mydata));
-    qDebug()<< "server to client : " << returnData;
+    //qDebug()<< "server to client : " << returnData;
     client_socket->write(returnData.toStdString().c_str());
 
     return client_socket->waitForBytesWritten();
@@ -144,8 +382,6 @@ bool MyThread::writeData(QByteArray mydata)
 //gui로 부터 broadcast버튼이 눌렸을때.
 void MyThread::broadcast_data_send(QByteArray bdata)
 {
-    //bdata.prepend()
-    qDebug()<<"size"<< bdata.size();
     client_socket->write(bdata);
     if(!client_socket->waitForBytesWritten())
     {

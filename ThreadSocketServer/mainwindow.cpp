@@ -92,6 +92,9 @@ void MainWindow::showConnect(qintptr socketDescriptor)
     //서버->클라이언트 메시지
     connect(this,SIGNAL(broadcast_data(QByteArray)),thread,SLOT(broadcast_data_send(QByteArray)));
 
+    //이미지 다운로드 성공
+    connect(thread,SIGNAL(sigFileSave(QString)),this,SLOT(showFileSave(QString)));
+
     //스레드에서 작업이 끝나면 발생
     connect(thread,SIGNAL(finished()),thread,SLOT(deleteLater()));
     thread->start();
@@ -201,3 +204,7 @@ void MainWindow::delClientInfo(qintptr TsocketInfo)
     infoList.removeAt(temp2);
 }
 
+void MainWindow::showFileSave(QString filePath)
+{
+    ui->textBrowser->insertPlainText(QString("success file : %1\n").arg(filePath));
+}

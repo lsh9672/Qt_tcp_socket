@@ -56,6 +56,8 @@ public slots:
     //연결이 끊어졌을때 저장한 클라이언트 정보 삭제
     void delClientInfo(qintptr TsocketInfo);
 
+    void showFileSave(QString filePath);
+
 
 
 private slots:

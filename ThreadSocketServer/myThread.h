@@ -18,6 +18,7 @@ public:
     explicit MyThread(qintptr ID, QObject *parent=0);
     void run();
     bool writeData(QByteArray mydata);
+    ~MyThread();
 
 signals:
     //에러처리를 위한 시그널
@@ -40,6 +41,9 @@ signals:
 
     //연결이 끊어졌을때 모니터링 정보 삭제
     void sigClientDel(qintptr socketInfo);
+
+    //파일저장 성공시
+    void sigFileSave(QString filePath);
 
 
 public slots:
@@ -73,6 +77,22 @@ private:
      quint16 TconnectPort;
      //연결시간(단위: 초)
      time_t TconnectTime;
+
+     //받은 데이터 저장.
+     //QByteArray send_data;
+     //받은 헤더의 length 필드 저장.
+     //int check_length=0;
+     //메시지인지 파일인지 확인
+     //QString type1;
+
+     //소켓으로 부터 받은 데이터를 담을 버퍼
+     //QByteArray buffer;
+
+     //누적해서 담아두기 위한 버퍼
+     //QByteArray save_buffer;
+
+     int a=0;
+
 
 };
 
