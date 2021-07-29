@@ -148,9 +148,9 @@
    <widget class="QTableWidget" name="table_client_info">
     <property name="geometry">
      <rect>
-      <x>270</x>
+      <x>230</x>
       <y>150</y>
-      <width>421</width>
+      <width>521</width>
       <height>171</height>
      </rect>
     </property>
@@ -164,6 +164,9 @@
      <property name="text">
       <string>socket descriptor</string>
      </property>
+     <property name="textAlignment">
+      <set>AlignCenter</set>
+     </property>
     </column>
     <column>
      <property name="text">
@@ -172,7 +175,12 @@
     </column>
     <column>
      <property name="text">
-      <string>port</string>
+      <string>peer port</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>connection port</string>
      </property>
     </column>
     <column>

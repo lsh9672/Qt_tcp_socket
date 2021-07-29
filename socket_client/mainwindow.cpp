@@ -179,18 +179,25 @@ void MainWindow::readData()
     if(client_socket->bytesAvailable()>0)
     {
 
-          tempData = client_socket->readAll();
-          QByteArray a = "a";
+        QDataStream socketStream(client_socket);
+        socketStream.setVersion(QDataStream::Qt_5_12);
 
-          qDebug() << "read data" << tempData[0];
+        //a++;
+        //qDebug()<<"signal call count" <<a;
 
-          //qDebug() << tempData[0] << tempData[1] << tempData[2] << tempData[3] << tempData[4] << tempData[5];
-          //qDebug()<< "data type : "<< typeid (client_socket->readAll()).name(); => 변수타입 확인.
-          //QDataStream in(&tempData,QIODevice::ReadWrite);
-          //qDebug() << "QByteArray Test : " << tempData;
-          //qDebug() << QString(tempData);
+        socketStream.startTransaction();
 
-            ui->textBrowser->insertPlainText(QString("data sent by the server  :  %1\n").arg(QString(tempData)));
+        socketStream >> tempData;
+
+
+        if(!socketStream.commitTransaction())
+        {
+            qDebug()<<"commit check : "<< client_socket->localPort();
+            return;
+        }
+
+
+        ui->textBrowser->insertPlainText(QString("data sent by the server  :  %1\n").arg(QString(tempData)));
     }
 
 }
@@ -222,7 +229,10 @@ void MainWindow::on_pushButton_2_clicked()
         {
             ui->textBrowser_socket_state->setText(QString("Connected fail;;;\n"));
         }
+        connect(client_socket,SIGNAL(error(QAbstractSocket::SocketError)),this,SLOT(showSocketError(QAbstractSocket::SocketError)));
     }
+
+
 }
 
 //연결해제 버튼
@@ -266,4 +276,31 @@ void MainWindow::on_pushButton_file_select_clicked()
     //file path 필드에 경로 보여주기
     ui->textBrowser_file_path->setText(file_path);
 }
+//소켓 에러처리 슬롯
+void MainWindow::showSocketError(QAbstractSocket::SocketError socketError)
+{
+    //ui->textBrowser->insertPlainText(QString("Error! : %1").arg(socketError));
+    switch(socketError)
+    {
+        //document에서 제공하는 오류
+        case QAbstractSocket::ConnectionRefusedError:
+            QMessageBox::information(this,"QTcpServer","The connection was refused by the peer (or timed out).Make sure QTCPServer is running, and check that the host name and port settings are correct.");
+        break;
+        case QAbstractSocket::HostNotFoundError:
+            QMessageBox::information(this,"QTcpServer","The host address was not found. Please check the host name and port settings.");
+        break;
+        case QAbstractSocket::SocketResourceError:
+            QMessageBox::information(this,"QTcpServer","The local system ran out of resources (e.g., too many sockets).");
+        break;
+        case QAbstractSocket::NetworkError:
+            QMessageBox::information(this,"QTcpServer","An error occurred with the network (e.g., the network cable was accidentally plugged out).");
+        break;
+        case QAbstractSocket::UnsupportedSocketOperationError:
+            QMessageBox::information(this,"QTcpServer","The requested socket operation is not supported by the local operating system (e.g., lack of IPv6 support).");
+        break;
+        default:
+            QTcpSocket* socket = qobject_cast<QTcpSocket*>(sender());
+            QMessageBox::information(this,"QTcpServer",QString("Error : %1").arg(socket->errorString()));
 
+    }
+}

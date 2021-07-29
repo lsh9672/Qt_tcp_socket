@@ -23,7 +23,7 @@ public:
     void appendSocketInfo(QTcpSocket *client_socket);
 
     //클라이언트 정보 모니터링
-    void showClientInfo(qintptr socketInfo,QString connectIp,quint16 connectPort,time_t connectTime);
+    void showClientInfo(qintptr socketInfo,QString connectIp,quint16 connectPort,quint16 work_port,time_t connectTime);
 
 
 signals:
@@ -64,6 +64,9 @@ private:
     QSet<QTcpSocket*> connection_socket;
     //key-value 형식으로 소켓에 대응되는 소켓기술자를 저장 - 연결이 끊어졌을떄 테이블에서 정보 삭제를 위해
     QHash<QTcpSocket*,qintptr> connection_socketDescriptor;
+
+    //종료시 서버소켓 close를 위해
+    QSet<QTcpServer*> connection_server;
 
 };
 #endif // MAINWINDOW_H

@@ -26,6 +26,9 @@ public slots:
     void disconnected();
 
 private slots:
+
+    //소켓에러
+    void showSocketError(QAbstractSocket::SocketError socketError);
     //send 버튼
     void on_pushButton_clicked();
     //데이터 수신

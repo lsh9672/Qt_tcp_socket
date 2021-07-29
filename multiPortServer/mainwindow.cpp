@@ -57,7 +57,19 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    foreach(QTcpSocket * socket, connection_socket)
+    {
+        socket->close();
+        socket->deleteLater();
+    }
+    foreach(QTcpServer * server, connection_server)
+    {
+        server->close();
+        server->deleteLater();
+    }
+
     delete ui;
+
 }
 
 //서버 실행하는 버튼
@@ -74,14 +86,13 @@ void MainWindow::on_pushButton_start_clicked()
         {
             //MyServer의 함수를 실행하기 위해 객체 생성
             MyServer *mserver = new MyServer(this);
+            connection_server.insert(mserver);
             //listen 실행성공시
             connect(mserver,SIGNAL(listenSuccess(QString,quint16)),this,SLOT(showListenSuccess(QString,quint16)));
             //listen 실패시
             connect(mserver,SIGNAL(listenFail(QString)),this,SLOT(showListenFail(QString)));
             //listen하는 startServer
             mserver->startServer(port_start);
-            //연결정보 ui출력
-            connect(mserver,SIGNAL(connectClient(qintptr)),this,SLOT(showConnect(qintptr)));
 
             //클라이언트 연결이 들어오면 처리할 슬롯 연결
             connect(mserver,SIGNAL(newConnection()),this,SLOT(newConnection()));
@@ -96,6 +107,7 @@ void MainWindow::on_pushButton_start_clicked()
 
         //MyServer의 함수를 실행하기 위해 객체 생성
         MyServer *mserver = new MyServer(this);
+        connection_server.insert(mserver);
         //listen 실행성공시
         connect(mserver,SIGNAL(listenSuccess(QString,quint16)),this,SLOT(showListenSuccess(QString,quint16)));
         //listen 실패시
@@ -110,6 +122,7 @@ void MainWindow::on_pushButton_start_clicked()
         int port_start = (ui->lineEdit_port_2->text()).QString::toUInt();
         //MyServer의 함수를 실행하기 위해 객체 생성
         MyServer *mserver = new MyServer(this);
+        connection_server.insert(mserver);
         //listen 실행성공시
         connect(mserver,SIGNAL(listenSuccess(QString,quint16)),this,SLOT(showListenSuccess(QString,quint16)));
         //listen 실패시
@@ -155,10 +168,14 @@ void MainWindow::appendSocketInfo(QTcpSocket *client_socket)
     QString TconnectIp = client_socket->peerAddress().toString();
     //클라이언트의 port
     quint16 TconnectPort = client_socket->peerPort();
+    //접속한 서버의 로컬포트(작업중인 포트)
+    quint16 work_port = client_socket->localPort();
     //소켓 기술자가 셋팅된 시점을 접속시간으로 판단 -단위:sec
     time_t TconnectTime = time(NULL);
+
+
     //연결되었을 때, 표에 표시하는 함수
-    showClientInfo(TsocketInfo,TconnectIp,TconnectPort,TconnectTime);
+    showClientInfo(TsocketInfo,TconnectIp,TconnectPort,work_port,TconnectTime);
 
 
 
@@ -192,6 +209,9 @@ void MainWindow::delClientInfo()
     connection_socketDescriptor.erase(connection_socketDescriptor.find(TsocketInfo));
     //연결해제 정보 화면에 출력
     ui->textBrowser->insertPlainText(QString("[%1 socket] disconnected client\n").arg(temp_sd));
+
+    TsocketInfo->deleteLater();
+    TsocketInfo->close();
 
 }
 
@@ -255,7 +275,12 @@ void MainWindow::readData()
                 QString returnData = QString("[%1 socket] return data => ").arg(c_socket->socketDescriptor());
                 returnData.append(QString(body));
                 //qDebug()<< "server to client : " << returnData;
-                c_socket->write(returnData.toUtf8());
+                //c_socket->write(returnData.toUtf8());
+                QDataStream socketStream2(c_socket);
+
+                socketStream2.setVersion(QDataStream::Qt_5_12);
+
+                socketStream2 << returnData.toUtf8();
 
                 if(c_socket->waitForBytesWritten())
                 {
@@ -395,7 +420,7 @@ void MainWindow::on_pushButton_clicked()
 }
 
 //스레드로 부터 발생한 신호를 처리하는 부분 - 클라이언트 정보를 표시하기 위한 값들을 받아서 테이블에 추가함
-void MainWindow::showClientInfo(qintptr TsocketInfo,QString TconnectIp,quint16 TconnectPort,time_t TconnectTime)
+void MainWindow::showClientInfo(qintptr TsocketInfo,QString TconnectIp,quint16 TconnectPort,quint16 work_port,time_t TconnectTime)
 {
     struct tm t;
     localtime_s(&t,&TconnectTime);
@@ -409,7 +434,8 @@ void MainWindow::showClientInfo(qintptr TsocketInfo,QString TconnectIp,quint16 T
     ui->table_client_info->setItem(ui->table_client_info->rowCount()-1,0,new QTableWidgetItem(QString::number(TsocketInfo)));
     ui->table_client_info->setItem(ui->table_client_info->rowCount()-1,1,new QTableWidgetItem(temp[temp.length()-1]));
     ui->table_client_info->setItem(ui->table_client_info->rowCount()-1,2,new QTableWidgetItem(QString::number(TconnectPort)));
-    ui->table_client_info->setItem(ui->table_client_info->rowCount()-1,3,new QTableWidgetItem(convert_time));
+    ui->table_client_info->setItem(ui->table_client_info->rowCount()-1,3,new QTableWidgetItem(QString::number(work_port)));
+    ui->table_client_info->setItem(ui->table_client_info->rowCount()-1,4,new QTableWidgetItem(convert_time));
 
     //삭제시 빠른 조회를 위해 값 저장.
     //List를 이용하면 table의 row인덱스와 list의 인덱스를 동일하게 유지할수 있음(중간에 삭제가 일어나더라도 인덱스가 당겨짐)
