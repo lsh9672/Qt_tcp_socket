@@ -37,15 +37,7 @@ void MyThread::run()
     qDebug() <<"buffer Size"<<client_socket->readBufferSize();
 
 
-    /* ui에 표시할 값들 */
-    // 생성된 소켓의 기술자
-    TsocketInfo = client_socket->socketDescriptor();
-    //클라이언트의 ip
-    TconnectIp = client_socket->peerAddress().toString();
-    //클라이언트의 port
-    TconnectPort = client_socket->peerPort();
-    //소켓 기술자가 셋팅된 시점을 접속시간으로 판단 -단위:sec
-    TconnectTime = time(NULL);
+
 
     //소켓기술자 셋팅이 되면 ui에 표시할 정보들을 넘길 시그널 발생
     emit sigClientInfo(TsocketInfo,TconnectIp,TconnectPort,TconnectTime);

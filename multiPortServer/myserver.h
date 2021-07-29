@@ -1,13 +1,12 @@
 #ifndef MYSERVER_H
 #define MYSERVER_H
 #include <QTcpServer>
-
-#include "myThread.h"
+#include <QString>
+#include <QDebug>
 
 
 class MyServer : public QTcpServer
 {
-
     Q_OBJECT
 
 public:
@@ -26,12 +25,7 @@ signals:
 
 public slots:
 
-protected:
-    void incomingConnection(qintptr socketDescriptor);
-
-
 private:
 };
 
 #endif // MYSERVER_H
-

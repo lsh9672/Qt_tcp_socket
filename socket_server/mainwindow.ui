@@ -17,8 +17,8 @@
    <widget class="QTextBrowser" name="textBrowser">
     <property name="geometry">
      <rect>
-      <x>160</x>
-      <y>30</y>
+      <x>350</x>
+      <y>70</y>
       <width>411</width>
       <height>501</height>
      </rect>
@@ -27,14 +27,37 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>320</x>
-      <y>10</y>
-      <width>81</width>
+      <x>500</x>
+      <y>40</y>
+      <width>101</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
      <string>Server Logs</string>
+    </property>
+   </widget>
+   <widget class="QTextBrowser" name="textBrowser_2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>40</y>
+      <width>151</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>80</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>PushButton</string>
     </property>
    </widget>
   </widget>
