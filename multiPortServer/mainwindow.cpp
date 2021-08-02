@@ -115,7 +115,7 @@ void MainWindow::on_pushButton_start_clicked()
         //listen하는 startServer
         mserver->startServer(port_start);
         //연결정보 ui출력
-        connect(mserver,SIGNAL(connectClient(qintptr)),this,SLOT(showConnect(qintptr)));
+        connect(mserver,SIGNAL(newConnection()),this,SLOT(newConnection()));
     }
     else if(ui->lineEdit_port->text().isEmpty() && !ui->lineEdit_port_2->text().isEmpty())
     {
@@ -130,7 +130,7 @@ void MainWindow::on_pushButton_start_clicked()
         //listen하는 startServer
         mserver->startServer(port_start);
         //연결정보 ui출력
-        connect(mserver,SIGNAL(connectClient(qintptr)),this,SLOT(showConnect(qintptr)));
+        connect(mserver,SIGNAL(newConnection()),this,SLOT(newConnection()));
     }
     else
     {
@@ -348,6 +348,11 @@ void MainWindow::readData()
 
                 qDebug() << "data size : " << body.size();
                 buffer.clear();
+                QDataStream socketStream3(c_socket);
+
+                socketStream3.setVersion(QDataStream::Qt_5_12);
+
+                socketStream3 << QString("file upload successful!!").toUtf8();
             }
         }
         //헤더 분석 불가

@@ -61,6 +61,7 @@ bool MainWindow::connectCheck(QString server_ip, qint32 server_port)
 //메세지 보내는 버튼(send)
 void MainWindow::on_pushButton_clicked()
 {
+    ui->textBrowser->insertPlainText("sending message......");
     //연결이 되어있는 상태
     if(client_socket->state() == QAbstractSocket::ConnectedState)
     {
@@ -93,6 +94,8 @@ void MainWindow::on_pushButton_clicked()
 
         socketStream << send_message;
 
+
+
      }
 
       //연결이 잘 안되었으면
@@ -108,13 +111,17 @@ void MainWindow::on_pushButton_clicked()
 //파일 보내는 버튼
 void MainWindow::on_pushButton_4_clicked()
 {
+
     QByteArray header,send_message;
     QString file_path = ui->textBrowser_file_path->toPlainText();
     qDebug() << file_path;
 
+    ui->textBrowser->insertPlainText("file uploading........\n");
+    qDebug("asdfadfsdfsdfa");
     //파일 이름이 비어있으면 에러문구 출력
     if(file_path.isEmpty())
     {
+
         ui->textBrowser->setText("file path is empty!!\n");
         return;
     }
@@ -132,8 +139,8 @@ void MainWindow::on_pushButton_4_clicked()
     //파일이 제대로 열리면
     else
     {
+
         //파일경로가 제대로 되었을때만 실행
-        ui->textBrowser->setText("");
         send_message = file.readAll();
         qDebug() << "file size : " << send_message.size();
         //경로명에서 확장자 추출
@@ -159,12 +166,16 @@ void MainWindow::on_pushButton_4_clicked()
             socketStream << send_message;
 
             //client_socket->write(send_message);
+
         }
+
         else
         {
             QMessageBox::critical(this,"socket client","file read error");
         }
+
     }
+
 
 }
 
