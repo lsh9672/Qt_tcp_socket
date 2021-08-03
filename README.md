@@ -41,4 +41,4 @@
 1.  대용량 전송시, 파일이 전송되고 있음을 알수 있도록 문구를 출력하고, 전송이 끝나면 서버에서 클라이언트 쪽으로 전송완료 문구를 보내서 확인할수 있도록 함.
 2. 기존 기능 그대로 유지하면서 메세지 포맷을 아래그림과 같이 변경함.
 
-![image-20210803170927220](C:\Users\etri\AppData\Roaming\Typora\typora-user-images\image-20210803170927220.png)
+![image](https://user-images.githubusercontent.com/56991244/127982771-17d8cf63-26db-4671-9dcd-a8bae354d9bb.png)
