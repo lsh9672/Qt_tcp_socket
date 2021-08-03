@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QtEndian>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -9,6 +10,49 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     this->setWindowTitle("TCP client");
+
+    QString temp_mac;
+
+
+    QString a;
+    a.sprintf("%06X",124);
+    //바이트에 헥사값넣기
+    QByteArray ba = QByteArray::fromHex(a.toUtf8());
+    qDebug() << "check : " << ba.mid(0,3).toHex();
+    qDebug() << "check : " <<ba.mid(0,3).toHex().toInt(NULL,16);
+    qDebug() << " check size : " << ba.size();
+
+
+    //mac 주소 가져오기
+    QNetworkInterface interface;
+    QList<QNetworkInterface> macList = interface.allInterfaces();
+    for(int i = 0; i < macList.size(); i++)
+    {
+        QString str = macList.at(i).hardwareAddress();
+        //윈도우용
+       if(str != "")
+       //리눅스 용
+       //if(str != "00:00:00:00:00:00")
+       {
+           //임시로 마지막 맥주소 저장(현재 가상 네트워크때문에 맥주소가 여러개 나옴 - 실제 디바이스에서는 한개만 잡힐것이라고 생각)
+          temp_mac = str;
+
+       }
+    }
+    qDebug()<<"mac address check : " << temp_mac;
+
+    //저장한 맥주소를 hex값만 뽑아서 QByteArray에 넣기
+    QStringList temp_list = temp_mac.split(":");
+    for(int i = 0; i<temp_list.size(); i++)
+    {
+        QString temp_num;
+        temp_num.sprintf("%02X", temp_list.at(i).toInt(NULL,16));
+        mac_addr.append(QByteArray::fromHex(temp_num.toUtf8()));
+    }
+
+    qDebug() << "mac address : "<< mac_addr;
+    qDebug() << "mac address size : "<< mac_addr.size();
+
 
     //소켓 생성
     client_socket = new QTcpSocket(this);
@@ -61,15 +105,95 @@ bool MainWindow::connectCheck(QString server_ip, qint32 server_port)
 //메세지 보내는 버튼(send)
 void MainWindow::on_pushButton_clicked()
 {
-    ui->textBrowser->insertPlainText("sending message......");
+    //ui->textBrowser->insertPlainText("sending message......\n");
     //연결이 되어있는 상태
     if(client_socket->state() == QAbstractSocket::ConnectedState)
     {
+        //gui에 입력한 클라이언트 메시지
+        //QString client_message;
+        //QByteArray header,send_message;
 
-        QString client_message;
-        QByteArray header,send_message,test1;
+        QByteArray client_message,header,send_message;
 
 
+        //입력한 메시지를 가져옴
+        client_message=ui->textEdit->toPlainText().toUtf8();
+        //ui->textBrowser_socket_state->setText(QString::number(client_message.toUtf8().size()));
+
+        //file_size 추가(4Byte)
+        QString file_size;
+        file_size.sprintf("%08X",client_message.size());
+        header = QByteArray::fromHex(file_size.toUtf8());
+
+        //evt 추가(메시지의 경우 십진수 1로 함,1Byte)
+        QString evt;
+        evt.sprintf("%02X",1);
+        header.prepend(QByteArray::fromHex(evt.toUtf8()));
+
+        //dev_id 추가 - 맥주소 받아와서 처리(프로그램 실행시 처리) - 6Byte
+        header.prepend(mac_addr);
+
+        //sid 추가 - 임의로 0x22값을 넣음(1Byte)
+        QByteArray sid = QByteArray::fromHex("22");
+        header.prepend(sid);
+
+        //페이로드 크기 - 지금까지 추가한 header크기+메시지 크기 - 4byte
+        QString payload_length;
+        payload_length.sprintf("%08X",client_message.size()+header.size());
+        QByteArray temp2 = QByteArray::fromHex(payload_length.toUtf8());
+        QByteArray payload2;
+        //little endian으로 변환.
+        for(int i = temp2.size()-1; i>=0; i--)
+        {
+            payload2.append(temp2.at(i));
+            qDebug()<<"little check : "<<payload2.toHex();
+        }
+
+        header.prepend(payload2);
+
+        //파일 타입 - 메시지이면 ms(0x00, 파일이면 fl - 0xff) - 2byte
+        QByteArray type_header = QByteArray::fromHex("0000");
+        header.prepend(type_header);
+
+        //보낼 데이터
+        client_message.prepend(header);
+        send_message = client_message;
+
+
+        qDebug() << "size2 : "<< send_message.size();
+        qDebug()<< "type2 : " <<send_message.mid(0,2).toHex();
+        ui->textBrowser->insertPlainText("type : ");
+        ui->textBrowser->insertPlainText(send_message.mid(0,2).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "length2 : " <<send_message.mid(2,4).toHex();
+        ui->textBrowser->insertPlainText("length(little endian) : ");
+        ui->textBrowser->insertPlainText(send_message.mid(2,4).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "sid2 : " <<send_message.mid(6,1).toHex();
+        ui->textBrowser->insertPlainText("sid : ");
+        ui->textBrowser->insertPlainText(send_message.mid(6,1).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "dev_id2 : " <<send_message.mid(7,6).toHex();
+        ui->textBrowser->insertPlainText("dev_id : ");
+        ui->textBrowser->insertPlainText(send_message.mid(7,6).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "evt2 : " <<send_message.mid(13,1).toHex();
+        ui->textBrowser->insertPlainText("evt : ");
+        ui->textBrowser->insertPlainText(send_message.mid(13,1).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "file_size2 : " <<send_message.mid(14,4).toHex();
+        ui->textBrowser->insertPlainText("file_size : ");
+        ui->textBrowser->insertPlainText(send_message.mid(14,4).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+
+
+        /*원래 코드
         //client가 보낼 메시지를 QString변수에 담음(Qstring은 qt에서 사용하는 String 타입정도로 생각)
         client_message=ui->textEdit->toPlainText();
         ui->textBrowser_socket_state->setText(QString::number(client_message.toUtf8().size()));
@@ -85,6 +209,7 @@ void MainWindow::on_pushButton_clicked()
 
         //보낼메시지에 헤더 붙이기
         send_message.prepend(header);
+        */
 
 
         //소켓으로 데이터 쓰기
@@ -112,6 +237,157 @@ void MainWindow::on_pushButton_clicked()
 void MainWindow::on_pushButton_4_clicked()
 {
 
+    if(client_socket->state() == QAbstractSocket::ConnectedState)
+    {
+        QByteArray header,send_message;
+        QString file_path = ui->textBrowser_file_path->toPlainText();
+        qDebug() << file_path;
+
+
+
+        //파일 이름이 비어있으면 에러문구 출력
+        if(file_path.isEmpty())
+        {
+            QMessageBox::information(this,"QTcpClient","file path is empty!!");
+            return;
+        }
+
+        ui->textBrowser->insertPlainText("file uploading........\n");
+        //입력받은 파일을 byte array로 가져오기
+        QFile file(file_path);
+
+        //파일을 읽을 수 없으면
+        if(!file.open(QFile::ReadOnly))
+        {
+            ui->textBrowser->setText("file path is incorrect");
+            QMessageBox::critical(this,"socket client","file is no readable");
+        }
+
+        //파일이 제대로 열리면
+        else
+        {
+
+            //파일경로가 제대로 되었을때만 실행
+            send_message = file.readAll();
+            qDebug() << "file size : " << send_message.size();
+            //경로명에서 확장자 추출
+            qDebug() <<"extension(type2) : " <<file_path.split(".")[1].toLower();
+
+            if(file.size() == send_message.size())
+            {
+                QByteArray header;
+
+
+                //file_size 추가(4Byte)
+                QString file_size;
+                file_size.sprintf("%08X",send_message.size());
+                header = QByteArray::fromHex(file_size.toUtf8());
+
+                //evt 추가(jpg:2,png:3,gif:4,txt:5,json:6,xml:7,mp4:8,avi:9 // 1Byte)
+                QString evt;
+                int evt_num=5;
+                if(file_path.split(".")[1].toLower() == "jpg") evt_num = 2;
+                else if(file_path.split(".")[1].toLower() == "png") evt_num = 3;
+                else if(file_path.split(".")[1].toLower() == "gif") evt_num = 4;
+                else if(file_path.split(".")[1].toLower() == "txt") evt_num = 5;
+                else if(file_path.split(".")[1].toLower() == "json") evt_num = 6;
+                else if(file_path.split(".")[1].toLower() == "xml") evt_num = 7;
+                else if(file_path.split(".")[1].toLower() == "mp4") evt_num = 8;
+                else if(file_path.split(".")[1].toLower() == "avi") evt_num = 9;
+                else evt_num = 5;
+
+                evt.sprintf("%02X",evt_num);
+                header.prepend(QByteArray::fromHex(evt.toUtf8()));
+
+                //dev_id 추가 - 맥주소 받아와서 처리(프로그램 실행시 처리) - 6Byte
+                header.prepend(mac_addr);
+
+                //sid 추가 - 임의로 0x22값을 넣음(1Byte)
+                QByteArray sid = QByteArray::fromHex("22");
+                header.prepend(sid);
+
+                //페이로드 크기 - 지금까지 추가한 header크기+메시지 크기 - 4byte
+                QString payload_length;
+                payload_length.sprintf("%08X",send_message.size()+header.size());
+                QByteArray temp2 = QByteArray::fromHex(payload_length.toUtf8());
+                QByteArray payload2;
+                //little endian으로 변환.
+                for(int i = temp2.size()-1; i>=0; i--)
+                {
+                    payload2.append(temp2.at(i));
+                    qDebug()<<"little check : "<<payload2.toHex();
+                }
+
+                header.prepend(payload2);
+
+                //파일 타입 - 메시지이면 ms(0x0000, 파일이면 fl - 0xffff) - 2byte
+                QByteArray type_header = QByteArray::fromHex("ffff");
+                header.prepend(type_header);
+                qDebug() << "size2 : "<< header.size();
+
+                //보낼 데이터에 만든 헤드 붙이기
+                send_message.prepend(header);
+
+
+
+                qDebug()<< "type2 : " <<send_message.mid(0,2).toHex();
+                ui->textBrowser->insertPlainText("type : ");
+                ui->textBrowser->insertPlainText(send_message.mid(0,2).toHex());
+                ui->textBrowser->insertPlainText("\n");
+
+                qDebug()<< "length2 : " <<send_message.mid(2,4).toHex();
+                ui->textBrowser->insertPlainText("length(little endian) : ");
+                ui->textBrowser->insertPlainText(send_message.mid(2,4).toHex());
+                ui->textBrowser->insertPlainText("\n");
+
+                qDebug()<< "sid2 : " <<send_message.mid(6,1).toHex();
+                ui->textBrowser->insertPlainText("sid : ");
+                ui->textBrowser->insertPlainText(send_message.mid(6,1).toHex());
+                ui->textBrowser->insertPlainText("\n");
+
+                qDebug()<< "dev_id2 : " <<send_message.mid(7,6).toHex();
+                ui->textBrowser->insertPlainText("dev_id : ");
+                ui->textBrowser->insertPlainText(send_message.mid(7,6).toHex());
+                ui->textBrowser->insertPlainText("\n");
+
+                qDebug()<< "evt2 : " <<send_message.mid(13,1).toHex();
+                ui->textBrowser->insertPlainText("evt : ");
+                ui->textBrowser->insertPlainText(send_message.mid(13,1).toHex());
+                ui->textBrowser->insertPlainText("\n");
+
+                qDebug()<< "file_size2 : " <<send_message.mid(14,4).toHex();
+                ui->textBrowser->insertPlainText("file_size : ");
+                ui->textBrowser->insertPlainText(send_message.mid(14,4).toHex());
+                ui->textBrowser->insertPlainText("\n");
+
+
+
+
+
+                qDebug()<< "header size : " << header.size();
+
+
+                //소켓으로 데이터 쓰기
+                QDataStream socketStream(client_socket);
+
+                socketStream.setVersion(QDataStream::Qt_5_12);
+
+                socketStream << send_message;
+
+                //client_socket->write(send_message);
+
+            }
+
+            else
+            {
+                QMessageBox::critical(this,"socket client","file read error");
+            }
+
+        }
+    }
+
+
+/*원래코드
     QByteArray header,send_message;
     QString file_path = ui->textBrowser_file_path->toPlainText();
     qDebug() << file_path;
@@ -149,10 +425,29 @@ void MainWindow::on_pushButton_4_clicked()
         if(file.size() == send_message.size())
         {
             //파일 일때 헤더만들기
-            header.prepend(QString("type1:file,type2:%1,length:%2").arg(file_path.split(".")[1].toLower()).arg(send_message.size()).toUtf8());
+            //header.prepend(QString("type1:file,type2:%1,length:%2").arg(file_path.split(".")[1].toLower()).arg(send_message.size()).toUtf8());
 
             //헤더크기 128byte로 고정
-            header.resize(128);
+            //header.resize(128);
+
+
+            //헤더 포맷1
+            //file_size 4byte
+            //header.prepend();
+            //evt(확장자) 1byte
+            //header.prepend();
+            //dev_id(맥주소) 6byte
+            //header.prepend();
+            //sid 1byte
+            //header.prepend();
+            //헤더 길이 4byte(little endian)
+            //header.prepend();
+            //타입 2byte
+            //header.prepend();
+
+
+
+
             qDebug()<< "header size : " << header.size();
 
             //보낼메시지에 헤더 붙이기
@@ -175,6 +470,7 @@ void MainWindow::on_pushButton_4_clicked()
         }
 
     }
+    */
 
 
 }

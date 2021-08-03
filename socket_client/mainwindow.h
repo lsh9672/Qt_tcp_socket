@@ -55,6 +55,9 @@ private:
 
     float data3;
 
+    //mac주소 헤더에 붙이기 위해서 bytearray로
+    QByteArray mac_addr;
+
 
 };
 #endif // MAINWINDOW_H
