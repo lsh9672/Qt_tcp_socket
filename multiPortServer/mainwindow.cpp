@@ -3,7 +3,7 @@
 #include <QMessageBox>
 #include <ctime>
 
-//클라이언트 정보 출력을 위한 구조체
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -51,7 +51,6 @@ MainWindow::MainWindow(QWidget *parent)
         }
     }
     ui->textBrowser_server_ip->setText(QString("%1").arg(all_ip));
-
 
 }
 
@@ -218,91 +217,124 @@ void MainWindow::delClientInfo()
 //소켓으로 부터 읽을 데이터가 있을때
 void MainWindow::readData()
 {
-    //evt보고 판단할 확장자 리스트
-    QStringList extension_name{"null","non","jpg","png","gif","txt","json","xml","mp4","avi"};
+
     QTcpSocket* c_socket = reinterpret_cast<QTcpSocket*>(sender());
-    QByteArray buffer;
+    //읽어온 데이터 저장을 위한 버퍼
+    QByteArray temp_buffer;
 
     //데이터스트림을 이용해서 소켓 데이터를 받는다.
     if(c_socket->bytesAvailable()>0)
     {
-        //QTcpSocket *test = reinterpret_cast<QTcpSocket*>(sender());
 
-        QDataStream socketStream(c_socket);
-        socketStream.setVersion(QDataStream::Qt_5_12);
+        temp_buffer = c_socket->readAll();
 
-        //a++;
-        //qDebug()<<"signal call count" <<a;
-
-        socketStream.startTransaction();
-
-        socketStream >> buffer;
-
-
-        if(!socketStream.commitTransaction())
+        qDebug()<< "socket test : "<< temp_buffer.size();
+        //헤더인지 아닌지 판단
+        //헤더가 아닌 잘려서 온 데이터 일 경우
+        if(temp_buffer.mid(0,2).toHex() != "ffff" && temp_buffer.mid(0,2).toHex() != "0000")
         {
-            qDebug()<<"commit check : "<< c_socket->localPort();
-            return;
+            buffer.append(temp_buffer);
+            //헤더가 저장이 안되었으면 에러
+            if(header.size() != 18)
+            {
+                QMessageBox::information(this,"QTcpServer","header error!");
+
+                return;
+            }
+
+            //file_size 필드를 big endian으로 변환
+            QByteArray temp_con = header.mid(14);
+            QByteArray endian_convert;
+            for(int i = temp_con.size()-1; i>=0; i--)
+            {
+                endian_convert.append(temp_con.at(i));
+            }
+
+
+            //파일의 데이터 부분이 file_size필드의 값보다 작으면 아직 안왔다고 판단해서 return
+            if(buffer.mid(18).size() < endian_convert.toHex().toInt(NULL,16)) return;
+            //else if (buffer.mid().size()<)
         }
+        //헤더인 경우
+        else
+        {
+            buffer.append(temp_buffer);
+            //18바이트까지 헤더
+            header = buffer.mid(0,18);
+            qDebug() <<"header check1 : "<<header.size();
+            //파일의 데이터 부분이 file_size필드의 값보다 작으면 아직 안왔다고 판단해서 return
+            QByteArray temp_con = header.mid(14);
+            QByteArray endian_convert;
+            for(int i = temp_con.size()-1; i>=0; i--)
+            {
+                endian_convert.append(temp_con.at(i));
+            }
+            if(buffer.mid(18).size() < endian_convert.toHex().toInt(NULL,16)) return;
+
+        }
+
         qDebug()<< "buffer size check : "<< buffer.size();
         //이부분이 실행되면 보낸 데이터를 buffer에 다 썼다는 이야기
-        /*헤더열어보기*/
+        //헤더열어보기//
         //type(2Byte)
-        QByteArray rec_type = buffer.mid(0,2);
+        QByteArray rec_type = header.mid(0,2);
         ui->textBrowser->insertPlainText("type : ");
-        ui->textBrowser->insertPlainText(buffer.mid(0,2).toHex());
+        ui->textBrowser->insertPlainText(header.mid(0,2).toHex());
         ui->textBrowser->insertPlainText("\n");
-        qDebug()<< "type : " <<buffer.mid(0,2).toHex();
+        qDebug()<< "type : " <<header.mid(0,2).toHex();
 
         //length(4Byte)- little endian
 
         ui->textBrowser->insertPlainText("length(little endian) : ");
-        ui->textBrowser->insertPlainText(buffer.mid(2,4).toHex());
+        ui->textBrowser->insertPlainText(header.mid(2,4).toHex());
         ui->textBrowser->insertPlainText("\n");
-        qDebug()<< "length : " <<buffer.mid(2,4).toHex();
-        QByteArray temp1 = buffer.mid(2,4);
+        qDebug()<< "length : " <<header.mid(2,4).toHex();
+        QByteArray temp1 = header.mid(2,4);
         QByteArray rec_length;
         for(int i = temp1.size()-1; i>=0; i--)
         {
             rec_length.append(temp1.at(i));
         }
 
-
         //sid(1Byte)
         QByteArray rec_sid = buffer.mid(6,1);
         ui->textBrowser->insertPlainText("sid : ");
-        ui->textBrowser->insertPlainText(buffer.mid(6,1).toHex());
+        ui->textBrowser->insertPlainText(header.mid(6,1).toHex());
         ui->textBrowser->insertPlainText("\n");
-        qDebug()<< "sid : " <<buffer.mid(6,1).toHex();
+        qDebug()<< "sid : " <<header.mid(6,1).toHex();
 
         //dev_id(6Byte)
-        QByteArray rec_dev_id = buffer.mid(7,6);
+        QByteArray rec_dev_id = header.mid(7,6);
         ui->textBrowser->insertPlainText("dev_id : ");
-        ui->textBrowser->insertPlainText(buffer.mid(7,6).toHex());
+        ui->textBrowser->insertPlainText(header.mid(7,6).toHex());
         ui->textBrowser->insertPlainText("\n");
-        qDebug()<< "dev_id : " <<buffer.mid(7,6).toHex();
+        qDebug()<< "dev_id : " <<header.mid(7,6).toHex();
 
         //evt(1Byte)
-        QByteArray rec_evt = buffer.mid(13,1);
+        QByteArray rec_evt = header.mid(13,1);
         ui->textBrowser->insertPlainText("evt : ");
-        ui->textBrowser->insertPlainText(buffer.mid(13,1).toHex());
+        ui->textBrowser->insertPlainText(header.mid(13,1).toHex());
         ui->textBrowser->insertPlainText("\n");
-        qDebug()<< "evt : " <<buffer.mid(13,1).toHex();
+        qDebug()<< "evt : " <<header.mid(13,1).toHex();
 
-        //file_size(4Byte)
-        QByteArray rec_file_size = buffer.mid(14,4);
+        //file_size(4Byte) - little endian
+        QByteArray temp2 = header.mid(14,4);
         ui->textBrowser->insertPlainText("file_size : ");
-        ui->textBrowser->insertPlainText(buffer.mid(14,4).toHex());
+        ui->textBrowser->insertPlainText(header.mid(14,4).toHex());
         ui->textBrowser->insertPlainText("\n");
-        qDebug()<< "file_size : " <<buffer.mid(14,4).toHex().toInt(NULL,16);
-        qDebug()<< "buffer_size : " <<buffer.size();
+        qDebug()<< "file_size : " <<header.mid(14,4).toHex().toInt(NULL,16);
+        qDebug()<< "buffer_size : " <<header.size();
+        QByteArray rec_file_size;
+        for(int i = temp2.size()-1; i>=0; i--)
+        {
+            rec_file_size.append(temp2.at(i));
+        }
 
         //데이터 부분 저장.
         QByteArray body = buffer.mid(18);
         //메시지 처리.
         if(rec_type.toHex()=="0000")
         {
-
 
             //length 필드와 받아서 저장한 데이터 크기가 같다면 실행
             if(rec_file_size.toHex().toInt(NULL,16) == body.size())
@@ -311,16 +343,11 @@ void MainWindow::readData()
                 qDebug() << "data size : " << body.size();
                 ui->textBrowser->insertPlainText(QString("[%1 socket] Client to Server : %2\n").arg(c_socket->socketDescriptor()).arg(QString(body)));
 
-
-                QString returnData = QString("[%1 socket] return data => ").arg(c_socket->socketDescriptor());
-                returnData.append(QString(body));
+                QString returnData = QString("[%1 socket] message return success").arg(c_socket->socketDescriptor());
                 //qDebug()<< "server to client : " << returnData;
-                //c_socket->write(returnData.toUtf8());
-                QDataStream socketStream2(c_socket);
 
-                socketStream2.setVersion(QDataStream::Qt_5_12);
-
-                socketStream2 << returnData.toUtf8();
+                //클라이언트로 데이터 리턴
+                c_socket->write(returnData.toUtf8());
 
                 if(c_socket->waitForBytesWritten())
                 {
@@ -355,7 +382,7 @@ void MainWindow::readData()
             if(rec_file_size.toHex().toInt(NULL,16) == body.size())
             {
                 qDebug() << "logic check2 : "<< rec_file_size.toHex().toInt(NULL,16);
-                /*헤더열어보기*/
+                //헤더열어보기
                 //파일 저장할 디렉토리 생성 - 기존에 있으면 무시, 없으면 생성(현재경로에 생성)
                 QDir dir;
                 //사용자의 데스크탑 디렉토리 반환(데스크탑개념이 없는 시스템에서 homelocation과 동일) + 생성할 폴더
@@ -367,8 +394,9 @@ void MainWindow::readData()
                 qDebug() <<temp_path;
 
                 //파일확장자 가져오기
-                QString file_extension = extension_name.at(rec_evt.toInt(NULL,16));
-                qDebug()<<"extension name : "<<extension_name.at(rec_evt.toInt(NULL,16));
+                QString file_extension = extension_name.at(rec_evt.toHex().toInt(NULL,16));
+
+                qDebug()<<"extension name : "<<extension_name.at(rec_evt.toHex().toInt(NULL,16));
 
                 //파일명으로 쓸 현재시간 (초)가져옴
                 QString fileName = QString::number(time(NULL));
@@ -390,12 +418,8 @@ void MainWindow::readData()
                 ui->textBrowser->insertPlainText(QString("success file : %1\n").arg(temp_path+fileName));
 
                 qDebug() << "data size : " << body.size();
-                buffer.clear();
-                QDataStream socketStream3(c_socket);
 
-                socketStream3.setVersion(QDataStream::Qt_5_12);
-
-                socketStream3 << QString("file upload successful!!").toUtf8();
+                c_socket->write(QString("file upload successful!!").toUtf8());
             }
         }
         //헤더 분석 불가
@@ -404,126 +428,12 @@ void MainWindow::readData()
             qDebug() <<"header error";
             ui->textBrowser->insertPlainText(QString("[%1 socket] return Fail!\n").arg(c_socket->socketDescriptor()));
         }
+        //하나의 데이터 요청에 대하여 처리가 끝나면 버퍼를 비워줌
+        buffer.clear();
+        header.clear();
 
-
-        /*원래코드
-        QString header = buffer.mid(0,128);
-
-        //데이터부분 저장
-        QByteArray body = buffer.mid(128);
-
-        //헤더에서 메시지인지 파일인지 확인을 위해
-        QString type1 = header.split(",")[0].split(":")[1];
-
-        qDebug() << "header check : " << QString(header);
-
-        //데이터 사이즈 체크를 위해
-        int check_length=0;
-
-        if(type1=="ms")
-        {
-            //데이터 사이즈 저장
-            check_length = header.split(",")[2].split(":")[1].toInt();
-
-            //length 필드와 받아서 저장한 데이터 크기가 같다면 실행
-            if(check_length == body.size())
-            {
-
-                qDebug() << "data size : " << body.size();
-                ui->textBrowser->insertPlainText(QString("[%1 socket] Client to Server : %2\n").arg(c_socket->socketDescriptor()).arg(QString(body)));
-
-
-                QString returnData = QString("[%1 socket] return data => ").arg(c_socket->socketDescriptor());
-                returnData.append(QString(body));
-                //qDebug()<< "server to client : " << returnData;
-                //c_socket->write(returnData.toUtf8());
-                QDataStream socketStream2(c_socket);
-
-                socketStream2.setVersion(QDataStream::Qt_5_12);
-
-                socketStream2 << returnData.toUtf8();
-
-                if(c_socket->waitForBytesWritten())
-                {
-                    qDebug() << "Data Return Success!";
-                    ui->textBrowser->insertPlainText(QString("[%1 socket] return success!\n").arg(c_socket->socketDescriptor()));
-
-                }
-                else
-                {
-                    qDebug() << "Data Return Fail";
-
-                }
-                buffer.clear();
-            }
-            //데이터가 중간에 유실되거나 함-> 다시 보내야됨.
-            else if(check_length>0)
-            {
-                qDebug() << "data send fail";
-
-            }
-
-        }
-
-        // 파일인 경우
-        else if(type1=="file")
-        {
-
-            //데이터 사이즈 저장
-            check_length = header.split(",")[2].split(":")[1].toInt();
-
-            //데이터를 원래크기만큼 받아서 실제로 처리하는 부분
-            if(check_length == body.size())
-            {
-                //파일 저장할 디렉토리 생성 - 기존에 있으면 무시, 없으면 생성(현재경로에 생성)
-                QDir dir;
-                //사용자의 데스크탑 디렉토리 반환(데스크탑개념이 없는 시스템에서 homelocation과 동일) + 생성할 폴더
-                QString temp_path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)+"/socket_file/";
-
-                //소켓기술자 별로 폴더를 구분하기 위해서
-                temp_path= temp_path.append(QString::number(c_socket->socketDescriptor())+"/");
-                dir.mkpath(temp_path);
-                qDebug() <<temp_path;
-
-                //파일확장자 가져오기
-                QString file_extension = header.split(",")[1].split(":")[1];
-
-                //파일명으로 쓸 현재시간 (초)가져옴
-                QString fileName = QString::number(time(NULL));
-
-                //확장자를 붙여서 완전한 파일이름 만들기
-                fileName = fileName.append("."+file_extension);
-                qDebug() << "file path cehck" << fileName;
-                qDebug() << "file path cehck2" << temp_path+fileName;
-
-                //위에서 만든 경로로 파일열기
-                QFile file(temp_path+fileName);
-
-                //파일을 열수 없는 경우
-                if(!file.open(QIODevice::WriteOnly))
-                {
-                    return;
-                }
-                file.write(body);
-                ui->textBrowser->insertPlainText(QString("success file : %1\n").arg(temp_path+fileName));
-
-                qDebug() << "data size : " << body.size();
-                buffer.clear();
-                QDataStream socketStream3(c_socket);
-
-                socketStream3.setVersion(QDataStream::Qt_5_12);
-
-                socketStream3 << QString("file upload successful!!").toUtf8();
-            }
-        }
-        //헤더 분석 불가
-        else
-        {
-            qDebug() <<"header error";
-            ui->textBrowser->insertPlainText(QString("[%1 socket] return Fail!\n").arg(c_socket->socketDescriptor()));
-        }
-        */
     }
+
 
 }
 

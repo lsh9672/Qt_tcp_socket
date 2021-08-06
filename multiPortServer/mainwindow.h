@@ -6,6 +6,7 @@
 #include "myserver.h"
 #include <QFile>
 #include <QFileDialog>
+#include <cstring>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -67,6 +68,15 @@ private:
 
     //종료시 서버소켓 close를 위해
     QSet<QTcpServer*> connection_server;
+
+    //수신한 데이터를 저장하는 버퍼
+    QByteArray buffer;
+
+    //수신한 헤더 저장
+    QByteArray header;
+
+    //evt보고 판단할 확장자 리스트
+    QStringList extension_name = {"null","non","jpg","png","gif","txt","json","xml","mp4","avi"};
 
 };
 #endif // MAINWINDOW_H
