@@ -187,46 +187,12 @@ void MainWindow::on_pushButton_clicked()
         ui->textBrowser->insertPlainText(send_message.mid(14,4).toHex());
         ui->textBrowser->insertPlainText("\n");
 
-
-
-        /*원래 코드
-        //client가 보낼 메시지를 QString변수에 담음(Qstring은 qt에서 사용하는 String 타입정도로 생각)
-        client_message=ui->textEdit->toPlainText();
-        ui->textBrowser_socket_state->setText(QString::number(client_message.toUtf8().size()));
-
-        //메시지 일때 헤더만들기
-        header.prepend(QString("type1:ms,type2:non,length:%1").arg(client_message.size()).toUtf8());
-
-        //헤더크기 128로 고정
-        header.resize(128);
-
-        //보낼 메시지 바이트로 만들기
-        send_message = client_message.toUtf8();
-
-        //보낼메시지에 헤더 붙이기
-        send_message.prepend(header);
-        */
-
-
-        //소켓으로 데이터 쓰기
-        /*
-        QDataStream socketStream(client_socket);
-
-        socketStream.setVersion(QDataStream::Qt_5_12);
-
-        socketStream << send_message;
-        */
-
-
-
-
         client_socket->write(send_message);
      }
 
       //연결이 잘 안되었으면
     else if(client_socket->state() == QAbstractSocket::UnconnectedState)
     {
-
          ui->textBrowser->insertPlainText("connect fail! - please connect server\n");
     }
 
@@ -363,10 +329,6 @@ void MainWindow::on_pushButton_4_clicked()
                 ui->textBrowser->insertPlainText("file_size : ");
                 ui->textBrowser->insertPlainText(send_message.mid(14,4).toHex());
                 ui->textBrowser->insertPlainText("\n");
-
-
-
-
 
                 qDebug()<< "header size : " << header.size();
 
@@ -515,3 +477,118 @@ void MainWindow::showSocketError(QAbstractSocket::SocketError socketError)
 
     }
 }
+
+
+
+//센서 데이터 전송-17bytes
+void MainWindow::on_pushButton_sensor_clicked()
+{
+
+
+
+    //연결이 되어있는 상태
+    if(client_socket->state() == QAbstractSocket::ConnectedState)
+    {
+        //gui에 입력한 센서데이터
+        QByteArray header,send_message,sensor_data;
+        float temp_sensor_data;
+
+
+
+        //dev_id 추가 - 맥주소 받아와서 처리(프로그램 실행시 처리) - 6Byte
+        header = mac_addr;
+
+        //sid 추가 - 센서의 경우 0x11값을 넣음(1Byte)
+        QByteArray sid = QByteArray::fromHex("11");
+        header.prepend(sid);
+
+        //페이로드 크기 - 센서데이터는 크기가 11바이트로 고정(little endian)
+        QString payload_length;
+        payload_length.sprintf("%08X",11);
+        QByteArray temp2 = QByteArray::fromHex(payload_length.toUtf8());
+        QByteArray payload2;
+        //little endian으로 변환.
+        for(int i = temp2.size()-1; i>=0; i--)
+        {
+            payload2.append(temp2.at(i));
+        }
+
+        header.prepend(payload2);
+
+        //파일 타입 - 센서데이터는 ffff - 2byte
+        QByteArray type_header = QByteArray::fromHex("ffff");
+        header.prepend(type_header);
+
+
+        /*
+        float *test;
+        float *test2;
+
+        float temp_sensor_data=ui->textEdit_sensor->toPlainText().toFloat();
+        //변환시 little endian으로 변환됨.
+        QByteArray sensor_data = QByteArray::fromRawData(reinterpret_cast<char *>(&temp_sensor_data),sizeof(float));
+
+        test = reinterpret_cast<float*>(sensor_data.data());
+        test2 = reinterpret_cast<float*>(temp.data());
+        float test3 = *test;
+        float test4 = *test2;
+        qDebug()<< "test1 : " << sensor_data.toHex();
+        qDebug()<< "test2 : " << temp.toHex();
+        qDebug()<< "test2 : " << test3;
+        qDebug()<< "test2 : " << test4;
+         */
+
+        //입력한 메시지를 가져옴
+        temp_sensor_data=ui->textEdit_sensor->toPlainText().toFloat();
+
+        //16진수로 변환
+        sensor_data = QByteArray::fromRawData(reinterpret_cast<char *>(&temp_sensor_data),sizeof(float));
+        /*sensor_data를 little endian으로
+        QByteArray temp;
+        for(int i  = sensor_data.size()-1 ; i >=0; i--)
+        {
+            temp.append(sensor_data.at(i));
+        }
+        */
+
+        //big endian 그대로
+        sensor_data.prepend(header);
+
+
+        qDebug() << "size2 : "<< sensor_data.size();
+        qDebug()<< "type2 : " <<sensor_data.mid(0,2).toHex();
+        ui->textBrowser->insertPlainText("type : ");
+        ui->textBrowser->insertPlainText(sensor_data.mid(0,2).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "length2 : " <<sensor_data.mid(2,4).toHex();
+        ui->textBrowser->insertPlainText("length(little endian) : ");
+        ui->textBrowser->insertPlainText(sensor_data.mid(2,4).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "sid2 : " <<sensor_data.mid(6,1).toHex();
+        ui->textBrowser->insertPlainText("sid : ");
+        ui->textBrowser->insertPlainText(sensor_data.mid(6,1).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "dev_id2 : " <<sensor_data.mid(7,6).toHex();
+        ui->textBrowser->insertPlainText("dev_id : ");
+        ui->textBrowser->insertPlainText(sensor_data.mid(7,6).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        qDebug()<< "sensor_data : " <<sensor_data.mid(13,4).toHex();
+        ui->textBrowser->insertPlainText("sensor_data : ");
+        ui->textBrowser->insertPlainText(sensor_data.mid(13,4).toHex());
+        ui->textBrowser->insertPlainText("\n");
+
+        client_socket->write(sensor_data);
+     }
+
+      //연결이 잘 안되었으면
+    else if(client_socket->state() == QAbstractSocket::UnconnectedState)
+    {
+         ui->textBrowser->insertPlainText("connect fail! - please connect server\n");
+    }
+
+}
+

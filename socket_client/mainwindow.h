@@ -44,6 +44,8 @@ private slots:
 
     void on_pushButton_file_select_clicked();
 
+    void on_pushButton_sensor_clicked();
+
 private:
     Ui::MainWindow *ui;
 

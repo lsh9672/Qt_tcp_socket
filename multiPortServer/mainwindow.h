@@ -72,11 +72,17 @@ private:
     //수신한 데이터를 저장하는 버퍼
     QByteArray buffer;
 
+    //다음데이터가 붙어서 왔을 때 처리를 위해서
+    QByteArray next_header;
+    QByteArray next_buffer;
+
     //수신한 헤더 저장
     QByteArray header;
 
     //evt보고 판단할 확장자 리스트
     QStringList extension_name = {"null","non","jpg","png","gif","txt","json","xml","mp4","avi"};
+
+
 
 };
 #endif // MAINWINDOW_H
