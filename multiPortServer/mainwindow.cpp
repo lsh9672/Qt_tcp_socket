@@ -229,8 +229,9 @@ void MainWindow::readData()
         temp_buffer = c_socket->readAll();
 
         qDebug()<< "socket test : "<< temp_buffer.size();
+        qDebug()<< "socket check all : "<< buffer.size();
         //헤더인지 아닌지 판단
-        //헤더가 아닌 잘려서 온 데이터 일 경우
+        //헤더가 아닌 잘려서 온 데이터 일 경우 - 온 데이터의 첫번째 2바이트를 열어봤을떄 형식에 맞지 않는 경우
         if(temp_buffer.mid(0,2).toHex() != "ffff" && temp_buffer.mid(0,2).toHex() != "0000")
         {
             buffer.append(temp_buffer);
@@ -274,16 +275,14 @@ void MainWindow::readData()
         //헤더인 경우(첫 2바이트가 형식에 맞을 경우)
         else
         {
-            //새로 들어온 데이터도 헤더 형식이 맞는데 이전에 저장된 헤더가 있다면 이전에 들어온 패킷은 패킷이 다오지 않아 기다리는 상태지만, 그 데이터가 유실되었다고 판단하고 삭제
-            if(!header.isNull())
-            {
-                //헤더가 남아있다면 이전에 들어온 데이터가 버퍼에 저장되어있다는 뜻이므로 전부 clear();
-                header.clear();
-                buffer.clear();
-            }
+            //첫 2바이트가 형식에 맞는데 이미 헤더가 있을경우 그냥 데이터라고 판단.
             buffer.append(temp_buffer);
-            //6바이트까지 헤더
-            header = buffer.mid(0,6);
+            if(header.isNull())
+            {
+                //6바이트까지 헤더
+                header = buffer.mid(0,6);
+            }
+
             qDebug() <<"header check1 : "<<header.size();
             //헤더의 length와 페이로드 비교해서 길이가 안맞으면 안왔다고 판단해서 return
             QByteArray temp_con = header.mid(2,4);
@@ -515,6 +514,7 @@ void MainWindow::readData()
             ui->textBrowser->insertPlainText(QString("[%1 socket] return Fail!\n").arg(c_socket->socketDescriptor()));
         }
         //하나의 데이터 요청에 대하여 처리가 끝나면 버퍼를 비워줌
+        qDebug() << "finish clear check";
         buffer.clear();
         header.clear();
 

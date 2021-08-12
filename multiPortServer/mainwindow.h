@@ -80,7 +80,7 @@ private:
     QByteArray header;
 
     //evt보고 판단할 확장자 리스트
-    QStringList extension_name = {"null","non","jpg","png","gif","txt","json","xml","mp4","avi"};
+    QStringList extension_name = {"null","non","jpg","png","gif","txt","json","xml","mp4","avi","zip"};
 
 
 

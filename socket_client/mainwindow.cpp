@@ -264,7 +264,7 @@ void MainWindow::on_pushButton_4_clicked()
                 else if(file_path.split(".")[1].toLower() == "xml") evt_num = 7;
                 else if(file_path.split(".")[1].toLower() == "mp4") evt_num = 8;
                 else if(file_path.split(".")[1].toLower() == "avi") evt_num = 9;
-                else evt_num = 5;
+                else evt_num = 10;
 
                 evt.sprintf("%02X",evt_num);
                 header.prepend(QByteArray::fromHex(evt.toUtf8()));
@@ -285,7 +285,6 @@ void MainWindow::on_pushButton_4_clicked()
                 for(int i = temp2.size()-1; i>=0; i--)
                 {
                     payload2.append(temp2.at(i));
-                    qDebug()<<"little check : "<<payload2.toHex();
                 }
 
                 header.prepend(payload2);
