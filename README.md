@@ -60,5 +60,6 @@
 
 1. sensor데이터를 처리하는 메시지 포맷에 맞춰서 헤더를 붙여 전송하도록 하는 기능 추가.
 (아래 sensor_data는 float)
+
 ![image](https://user-images.githubusercontent.com/56991244/129166347-92856e69-570e-46ed-9170-8f876c305435.png)
 
