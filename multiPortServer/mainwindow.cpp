@@ -2,9 +2,11 @@
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <ctime>
-
-
-
+/*
+#include <InfluxDB.h>
+#include <Point.h>
+#include <InfluxDBFactory.h>
+*/
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -206,6 +208,7 @@ void MainWindow::delClientInfo()
 
     //저장한 tcp 리스트에서도 삭제
     connection_socketDescriptor.erase(connection_socketDescriptor.find(TsocketInfo));
+
     //연결해제 정보 화면에 출력
     ui->textBrowser->insertPlainText(QString("[%1 socket] disconnected client\n").arg(temp_sd));
 
@@ -491,13 +494,23 @@ void MainWindow::readData()
                 float *value_temp;
                 value_temp = reinterpret_cast<float*>(body.data());
                 float sen_data = *value_temp;
+
+                QString mac_add = rec_dev_id.toHex(':');
+
+                //auto influxdb = influxdb::InfluxDBFactory::Get("http://127.0.0.1:8086?db=testDB");
+                //influxdb->write(influxdb::Point{"sensor"}.addField("value",sen_data).addTag("Mac-Address",mac_add.toStdString()));
+
+
+
                 ui->textBrowser->insertPlainText("sensor data : ");
                 ui->textBrowser->insertPlainText(QString::number(sen_data));
                 ui->textBrowser->insertPlainText("\n");
+
+
                 qDebug()<< "file_size : " <<sen_data;
             }
 
-            //두개 중에 아무것도 아니면 에러- 버퍼 비우고 리턴
+            //세개 중에 아무것도 아니면 에러- 버퍼 비우고 리턴
             else
             {
                 buffer.clear();
