@@ -509,8 +509,8 @@ void MainWindow::readData()
 
                     Producer producer(config);
 
-                    //string message = to_string(sen_data);
-                    producer.produce(MessageBuilder("test77").partition(1).payload("hello_world22"));
+                    string message = to_string(sen_data);
+                    producer.produce(MessageBuilder("test_topic").partition(1).payload(message));
 
                     producer.flush();
                 }  catch (exception e) {
