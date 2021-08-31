@@ -64,3 +64,8 @@
 
 ![image](https://user-images.githubusercontent.com/56991244/129166347-92856e69-570e-46ed-9170-8f876c305435.png)
 
+### v2.9 - 우분투 버전만
+##### (multiPortServer)
+
+1. 아파치 카프카와 연동하여 클라이언트로부터 센서데이터를 받으면 카프카로 데이터를 발행하는 기능 추가.
+
