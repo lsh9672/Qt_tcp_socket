@@ -8,6 +8,7 @@
 #include <QFileDialog>
 #include <cstring>
 
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -81,6 +82,9 @@ private:
 
     //evt보고 판단할 확장자 리스트
     QStringList extension_name = {"null","non","jpg","png","gif","txt","json","xml","mp4","avi","zip"};
+
+    //kafka
+
 
 
 

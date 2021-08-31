@@ -2,11 +2,14 @@
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <ctime>
-/*
-#include <InfluxDB.h>
 #include <Point.h>
+#include <InfluxDB.h>
 #include <InfluxDBFactory.h>
-*/
+#include <cppkafka/cppkafka.h>
+
+using namespace std;
+using namespace cppkafka;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -208,7 +211,6 @@ void MainWindow::delClientInfo()
 
     //저장한 tcp 리스트에서도 삭제
     connection_socketDescriptor.erase(connection_socketDescriptor.find(TsocketInfo));
-
     //연결해제 정보 화면에 출력
     ui->textBrowser->insertPlainText(QString("[%1 socket] disconnected client\n").arg(temp_sd));
 
@@ -497,20 +499,34 @@ void MainWindow::readData()
 
                 QString mac_add = rec_dev_id.toHex(':');
 
-                //auto influxdb = influxdb::InfluxDBFactory::Get("http://127.0.0.1:8086?db=testDB");
-                //influxdb->write(influxdb::Point{"sensor"}.addField("value",sen_data).addTag("Mac-Address",mac_add.toStdString()));
+                //influxdb
+                auto influxdb = influxdb::InfluxDBFactory::Get("http://129.254.87.109:8086?db=testDB");
+                influxdb->write(influxdb::Point{"sensor"}.addField("value",sen_data).addTag("Mac-Address",mac_add.toStdString()));
+
+                //kafka - producer
+                try {
+                    Configuration config = {{"bootstrap.servers","127.0.0.1:9092"}};
+
+                    Producer producer(config);
+
+                    //string message = to_string(sen_data);
+                    producer.produce(MessageBuilder("test77").partition(1).payload("hello_world22"));
+
+                    producer.flush();
+                }  catch (exception e) {
+                    qDebug() <<"error";
+                }
 
 
 
                 ui->textBrowser->insertPlainText("sensor data : ");
                 ui->textBrowser->insertPlainText(QString::number(sen_data));
                 ui->textBrowser->insertPlainText("\n");
-
-
                 qDebug()<< "file_size : " <<sen_data;
+
             }
 
-            //세개 중에 아무것도 아니면 에러- 버퍼 비우고 리턴
+            //두개 중에 아무것도 아니면 에러- 버퍼 비우고 리턴
             else
             {
                 buffer.clear();
@@ -609,9 +625,11 @@ void MainWindow::on_pushButton_clicked()
 //스레드로 부터 발생한 신호를 처리하는 부분 - 클라이언트 정보를 표시하기 위한 값들을 받아서 테이블에 추가함
 void MainWindow::showClientInfo(qintptr TsocketInfo,QString TconnectIp,quint16 TconnectPort,quint16 work_port,time_t TconnectTime)
 {
-    struct tm t;
-    localtime_s(&t,&TconnectTime);
-    QString convert_time = QString("%1.%2.%3.%4:%5").arg(t.tm_year + 1900).arg(t.tm_mon+1).arg(t.tm_mday).arg(t.tm_hour).arg(t.tm_min);
+    //struct tm t;
+    //localtime_s(&t,&TconnectTime);
+    struct tm *t;
+    t = localtime(&TconnectTime);
+    QString convert_time = QString("%1.%2.%3.%4:%5").arg(t->tm_year + 1900).arg(t->tm_mon+1).arg(t->tm_mday).arg(t->tm_hour).arg(t->tm_min);
 
     QStringList temp = TconnectIp.split(":");
 

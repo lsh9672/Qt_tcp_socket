@@ -1,4 +1,5 @@
 QT       += core gui network
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 #c++11
 CONFIG += c++17
@@ -31,11 +32,17 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+#influxdb api
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../influxdb-cxx/build/lib/release/ -lInfluxDB
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../influxdb-cxx/build/lib/debug/ -lInfluxDB
+else:unix: LIBS += -L$$PWD/../../influxdb-cxx/build/lib/ -lInfluxDB
 
-unix|win32: LIBS += -L$$PWD/../vcpkg/installed/x86-windows/lib/ -lInfluxDB
+INCLUDEPATH += $$PWD/../../influxdb-cxx/build
+DEPENDPATH += $$PWD/../../influxdb-cxx/build
 
-INCLUDEPATH += $$PWD/../vcpkg/installed/x86-windows/include
-DEPENDPATH += $$PWD/../vcpkg/installed/x86-windows/include
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../release/ -lcppkafka
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../debug/ -lcppkafka
+else:unix: LIBS += -L$$PWD/../../ -lcppkafka
 
-win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../vcpkg/installed/x86-windows/lib/InfluxDB.lib
-else:unix|win32-g++: PRE_TARGETDEPS += $$PWD/../vcpkg/installed/x86-windows/lib/libInfluxDB.a
+INCLUDEPATH += $$PWD/../../
+DEPENDPATH += $$PWD/../../
