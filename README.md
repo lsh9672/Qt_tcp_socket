@@ -70,12 +70,12 @@
 
 1. 아파치 카프카와 연동하여 클라이언트로부터 센서데이터를 받으면 카프카로 데이터를 발행하는 기능 추가.
 
-#### 실행화면
-> ### 서버프로그램
+> ### 실행화면
+#### 서버프로그램
 
 ![image](https://user-images.githubusercontent.com/56991244/148320988-1189589c-ebc8-4022-97a7-855d28faae85.png)
 
-> ### 클라이언트 프로그램
+#### 클라이언트 프로그램
 
 ![image](https://user-images.githubusercontent.com/56991244/148321291-5bbfab65-a145-40dd-95dd-3b23f2a691fd.png)
 
